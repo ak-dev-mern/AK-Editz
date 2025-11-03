@@ -123,13 +123,11 @@ const Blogs = () => {
         {filteredBlogs.length === 0 ? (
           <div className="text-center py-20">
             <img
-              src="/empty-state.svg"
+              src="/empty-state-blog.png"
               alt="No blogs"
-              className="w-48 mx-auto mb-6 opacity-80"
+              className=" mx-auto mb-6 opacity-80"
+              style={{ width: "500px"}}
             />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              No blogs found
-            </h3>
             <p className="text-gray-500">
               Try adjusting your filters or search keywords.
             </p>

@@ -36,6 +36,7 @@ import HelpCenter from "./pages/Main/HelpCenter";
 import { ChatBotProvider } from "./components/ChatBot/ChatBotProvider";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import ResetPassword from "./pages/Auth/ResetPassword";
+import NotFoundPage from "./pages/Main/NotFoundPage";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -143,6 +144,7 @@ function App() {
                     </AdminRoute>
                   }
                 />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Layout>
           </Router>

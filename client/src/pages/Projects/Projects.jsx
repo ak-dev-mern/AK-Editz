@@ -224,9 +224,12 @@ const Projects = () => {
         {/* Empty State */}
         {filteredProjects.length === 0 && (
           <div className="text-center py-16">
-            <h3 className="text-xl text-gray-500 font-medium mb-2">
-              No projects found
-            </h3>
+            <img
+              src="/empty-state-project.png"
+              alt="No Projects"
+              className=" mx-auto mb-6 opacity-80"
+              style={{ width: "500px" }}
+            />
             <p className="text-gray-400 text-sm">
               {searchQuery || selectedCategory !== "all"
                 ? "Try adjusting your filters or search terms."

@@ -175,7 +175,7 @@ const ChatBot = () => {
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-semibold">AK Editz Assistance</h3>
+                  <h3 className="font-semibold">Dev Assistant (AK)</h3>
                   <div className="flex items-center space-x-1">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <span className="text-xs text-blue-100">Online now</span>
