@@ -15,7 +15,7 @@ const About = () => {
         >
           <h1 className="text-5xl font-extrabold text-gray-900 mb-4 flex justify-center items-center gap-2">
             <Globe2 className="text-blue-600 w-8 h-8" />
-            About <span className="text-blue-600">Akeditz</span>
+            About <span className="text-blue-600">AK Editz</span>
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Empowering developers and creators with high-quality code projects,
@@ -44,7 +44,7 @@ const About = () => {
               </p>
             </div>
             <motion.img
-              src="/images/mission.svg"
+              src="/our-mission.png"
               alt="Our Mission"
               className="w-full max-w-sm"
               whileHover={{ scale: 1.05 }}

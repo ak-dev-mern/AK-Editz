@@ -1,7 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { apiService } from "../../utils/api"; // Adjust the path as needed
 
 const Footer = () => {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const socialLinks = [
     {
       name: "YouTube",
@@ -53,7 +59,6 @@ const Footer = () => {
       url: "https://www.instagram.com/akeditz.developer",
       color: "hover:text-pink-500",
     },
-
     {
       name: "LinkedIn",
       icon: (
@@ -65,6 +70,49 @@ const Footer = () => {
       color: "hover:text-blue-400",
     },
   ];
+
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!email) {
+      setMessage("Please enter your email address");
+      setIsSuccess(false);
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setMessage("Please enter a valid email address");
+      setIsSuccess(false);
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      await apiService.newsletter.subscribe(email, "footer");
+
+      setMessage("Thank you for subscribing to our newsletter!");
+      setIsSuccess(true);
+      setEmail("");
+
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setMessage("");
+        setIsSuccess(false);
+      }, 5000);
+    } catch (error) {
+      const errorMessage =
+        error.message || "Failed to subscribe. Please try again.";
+      setMessage(errorMessage);
+      setIsSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <footer className="bg-gradient-to-br from-gray-900 to-black text-white relative overflow-hidden">
       {/* Background Pattern */}
@@ -105,6 +153,8 @@ const Footer = () => {
                 <a
                   key={social.name}
                   href={social.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className={`bg-gray-800 p-3 rounded-xl text-gray-400 ${social.color} hover:bg-gray-700 transform hover:scale-110 transition-all duration-300 shadow-lg hover:shadow-xl`}
                   aria-label={social.name}
                 >
@@ -169,16 +219,47 @@ const Footer = () => {
             <p className="text-gray-300 mb-4">
               Subscribe to our newsletter for the latest updates and insights.
             </p>
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300"
-              />
-              <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl">
-                Subscribe
-              </button>
-            </div>
+
+            <form onSubmit={handleNewsletterSubmit}>
+              <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-gray-400 transition-all duration-300"
+                  disabled={loading}
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Subscribing...
+                    </div>
+                  ) : (
+                    "Subscribe"
+                  )}
+                </button>
+              </div>
+
+              {message && (
+                <div
+                  className={`mt-3 text-sm ${
+                    isSuccess ? "text-green-400" : "text-red-400"
+                  }`}
+                >
+                  {message}
+                </div>
+              )}
+            </form>
+
+            <p className="text-gray-400 text-xs mt-3">
+              No spam ever. Unsubscribe at any time.
+            </p>
           </div>
         </div>
 
@@ -188,24 +269,24 @@ const Footer = () => {
             &copy; {new Date().getFullYear()} Akeditz. All rights reserved.
           </p>
           <div className="flex space-x-6 text-sm text-gray-400">
-            <a
-              href="#"
+            <Link
+              to="/privacy-policy"
               className="hover:text-white transition-colors duration-300"
             >
               Privacy Policy
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/terms-of-service"
               className="hover:text-white transition-colors duration-300"
             >
               Terms of Service
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/cookies"
               className="hover:text-white transition-colors duration-300"
             >
               Cookies
-            </a>
+            </Link>
           </div>
         </div>
       </div>

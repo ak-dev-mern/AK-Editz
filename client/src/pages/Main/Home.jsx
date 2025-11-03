@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { apiService, apiUtils } from "../../utils/api";
 import Loader from "../../components/UI/Loader";
+import NewsletterSubscription from "../../components/Newsletter/NewsletterSubscription";
 
 const Home = () => {
   const [featuredProjects, setFeaturedProjects] = useState([]);
@@ -485,31 +486,7 @@ const Home = () => {
       </section>
 
       {/* Newsletter Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-700 py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
-            Stay Updated
-          </h2>
-          <p className="text-blue-100 mb-8 max-w-2xl mx-auto">
-            Get the latest projects, articles, and industry insights delivered
-            to your inbox.
-          </p>
-          <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-4">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button className="bg-white text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-colors">
-              Subscribe
-            </button>
-          </div>
-          <p className="text-blue-200 text-sm mt-4">
-            No spam ever. Unsubscribe at any time.
-          </p>
-        </div>
-      </section>
-
+      <NewsletterSubscription />
       {/* CTA Section */}
       <section className="bg-gradient-to-r from-gray-900 to-blue-900 text-white py-20">
         <div className="container mx-auto px-4 text-center">

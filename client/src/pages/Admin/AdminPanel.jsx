@@ -10,6 +10,7 @@ const AdminPanel = () => {
     blogs: 0,
     payments: 0,
     revenue: 0,
+    newsletterSubscribers: 0,
   });
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,19 +30,44 @@ const AdminPanel = () => {
       setLoading(true);
 
       // Fetch all stats in parallel
-      const [usersRes, projectsRes, blogsRes, paymentsRes] = await Promise.all([
-        apiService.users.getStats(),
-        apiService.projects.getStats(),
-        apiService.blogs.getStats(),
-        apiService.payments.getStats(),
-      ]);
+      const [usersRes, projectsRes, blogsRes, paymentsRes, newsletterRes] =
+        await Promise.all([
+          apiService.users.getStats(),
+          apiService.projects.getStats(),
+          apiService.blogs.getStats(),
+          apiService.payments.getStats(),
+          apiService.newsletter
+            .getStats()
+            .catch(() => ({ data: { totalSubscribers: 0 } })), // Handle if newsletter API doesn't exist
+        ]);
 
       setStats({
-        users: usersRes.stats.totalUsers || usersRes.count || 0,
-        projects: projectsRes.stats.totalProjects || projectsRes.count || 0,
-        blogs: blogsRes.stats.totalBlogs || blogsRes.count || 0,
-        payments: paymentsRes.stats.totalPayments || paymentsRes.count || 0,
-        revenue: paymentsRes.stats.totalRevenue || 0,
+        users:
+          usersRes.stats?.totalUsers ||
+          usersRes.totalUsers ||
+          usersRes.count ||
+          0,
+        projects:
+          projectsRes.stats?.totalProjects ||
+          projectsRes.totalProjects ||
+          projectsRes.count ||
+          0,
+        blogs:
+          blogsRes.stats?.totalBlogs ||
+          blogsRes.totalBlogs ||
+          blogsRes.count ||
+          0,
+        payments:
+          paymentsRes.stats?.totalPayments ||
+          paymentsRes.totalPayments ||
+          paymentsRes.count ||
+          0,
+        revenue:
+          paymentsRes.stats?.totalRevenue || paymentsRes.totalRevenue || 0,
+        newsletterSubscribers:
+          newsletterRes.data?.totalSubscribers ||
+          newsletterRes.totalSubscribers ||
+          0,
       });
 
       // Fetch recent activities from actual data
@@ -59,25 +85,34 @@ const AdminPanel = () => {
   const fetchRecentActivities = async () => {
     try {
       // Fetch recent data from all endpoints
-      const [recentUsers, recentProjects, recentBlogs, recentPayments] =
-        await Promise.all([
-          apiService.users
-            .getAll()
-            .then((res) => res.users || res.data || [])
-            .catch(() => []),
-          apiService.projects
-            .getAdminAll()
-            .then((res) => res.projects || res.data || [])
-            .catch(() => []),
-          apiService.blogs
-            .getAdminAll()
-            .then((res) => res.blogs || res.data || [])
-            .catch(() => []),
-          apiService.payments
-            .getAll()
-            .then((res) => res.payments || res.data || [])
-            .catch(() => []),
-        ]);
+      const [
+        recentUsers,
+        recentProjects,
+        recentBlogs,
+        recentPayments,
+        recentNewsletter,
+      ] = await Promise.all([
+        apiService.users
+          .getAll()
+          .then((res) => res.users || res.data || [])
+          .catch(() => []),
+        apiService.projects
+          .getAdminAll()
+          .then((res) => res.projects || res.data || [])
+          .catch(() => []),
+        apiService.blogs
+          .getAdminAll()
+          .then((res) => res.blogs || res.data || [])
+          .catch(() => []),
+        apiService.payments
+          .getAll()
+          .then((res) => res.payments || res.data || [])
+          .catch(() => []),
+        apiService.newsletter
+          ?.getSubscribers?.({ limit: 5 })
+          .then((res) => res.data?.subscribers || res.subscribers || [])
+          .catch(() => []),
+      ]);
 
       const activities = [];
 
@@ -127,6 +162,17 @@ const AdminPanel = () => {
         });
       });
 
+      // Add recent newsletter subscribers (last 5)
+      recentNewsletter.slice(0, 5).forEach((subscriber) => {
+        activities.push({
+          type: "newsletter",
+          message: `New newsletter subscriber: ${subscriber.email}`,
+          time: formatTimeAgo(subscriber.subscribedAt || subscriber.createdAt),
+          timestamp: new Date(subscriber.subscribedAt || subscriber.createdAt),
+          data: subscriber,
+        });
+      });
+
       // Sort by timestamp and take latest 10
       const sortedActivities = activities
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
@@ -165,6 +211,12 @@ const AdminPanel = () => {
         message: "New blog published",
         time: "1 hour ago",
         timestamp: new Date(Date.now() - 60 * 60 * 1000),
+      },
+      {
+        type: "newsletter",
+        message: "New newsletter subscriber",
+        time: "30 minutes ago",
+        timestamp: new Date(Date.now() - 30 * 60 * 1000),
       },
     ];
   };
@@ -256,6 +308,22 @@ const AdminPanel = () => {
             />
           </svg>
         );
+      case "newsletter":
+        return (
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
+          </svg>
+        );
       default:
         return null;
     }
@@ -313,7 +381,7 @@ const AdminPanel = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center">
               <div className="p-3 rounded-full bg-blue-100 text-blue-600">
@@ -414,6 +482,32 @@ const AdminPanel = () => {
                   {formatCurrency(stats.revenue)}
                 </h3>
                 <p className="text-gray-600">Total Revenue</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {stats.newsletterSubscribers.toLocaleString()}
+                </h3>
+                <p className="text-gray-600">Newsletter Subscribers</p>
               </div>
             </div>
           </div>
@@ -534,6 +628,64 @@ const AdminPanel = () => {
                   </p>
                 </div>
               </Link>
+
+              <Link
+                to="/admin/newsletter"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors"
+              >
+                <div className="p-2 rounded-full bg-indigo-100 text-indigo-600">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h4 className="font-medium text-gray-900">Newsletter</h4>
+                  <p className="text-sm text-gray-600">
+                    Manage subscribers and campaigns
+                  </p>
+                </div>
+              </Link>
+
+              <Link
+                to="/admin/settings"
+                className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-gray-500 hover:bg-gray-50 transition-colors"
+              >
+                <div className="p-2 rounded-full bg-gray-100 text-gray-600">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h4 className="font-medium text-gray-900">Settings</h4>
+                  <p className="text-sm text-gray-600">System configuration</p>
+                </div>
+              </Link>
             </div>
           </div>
 
@@ -563,7 +715,9 @@ const AdminPanel = () => {
                             ? "bg-green-100 text-green-600"
                             : activity.type === "payment"
                             ? "bg-yellow-100 text-yellow-600"
-                            : "bg-purple-100 text-purple-600"
+                            : activity.type === "blog"
+                            ? "bg-purple-100 text-purple-600"
+                            : "bg-indigo-100 text-indigo-600"
                         }`}
                       >
                         {getActivityIcon(activity.type)}

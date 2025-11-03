@@ -13,6 +13,7 @@ import projectRoutes from "./routes/projects.js";
 import blogRoutes from "./routes/blog.js";
 import paymentRoutes from "./routes/payments.js";
 import contactRoutes from "./routes/contact.js";
+import newsletterRoutes from "./routes/newsletter.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
 // Load environment variables
@@ -42,6 +43,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/newsletter", newsletterRoutes);
 
 // Basic route for testing
 app.get("/", (req, res) => {

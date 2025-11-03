@@ -172,6 +172,18 @@ export const apiService = {
     getStats: () => api.get("/payments/admin/stats/overview"),
     refundPayment: (id) => api.post(`/payments/admin/refund/${id}`),
   },
+
+  newsletter: {
+    subscribe: (email, name, source = "website") =>
+      api.post("/newsletter/subscribe", { email, name, source }),
+
+    unsubscribe: (email) => api.post("/newsletter/unsubscribe/", { email }),
+
+    getSubscribers: (params = {}) =>
+      api.get("/newsletter/subscribers", { params }),
+
+    getStats: () => api.get("/newsletter/stats"),
+  },
 };
 
 // Utility functions

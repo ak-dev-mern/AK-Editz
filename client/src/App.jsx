@@ -37,6 +37,10 @@ import { ChatBotProvider } from "./components/ChatBot/ChatBotProvider";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 import ResetPassword from "./pages/Auth/ResetPassword";
 import NotFoundPage from "./pages/Main/NotFoundPage";
+import ScrollToTop from "./components/UI/ScrollToTop";
+import NewsletterManager from "./pages/Admin/NewsletterManager";
+import UnsubscribePage from "./components/Newsletter/UnsubscribePage";
+import UnsubscribeSuccessPage from "./components/Newsletter/UnsubscribeSuccess";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -55,6 +59,7 @@ function App() {
       <AuthProvider>
         <ChatBotProvider>
           <Router>
+            <ScrollToTop />
             <Layout>
               <Routes>
                 {/* Public Routes */}
@@ -75,6 +80,15 @@ function App() {
                 <Route
                   path="/reset-password/:token"
                   element={<ResetPassword />}
+                />
+                <Route
+                  path="/admin/newsletter"
+                  element={<NewsletterManager />}
+                />
+                <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                <Route
+                  path="/unsubscribesuccess"
+                  element={<UnsubscribeSuccessPage />}
                 />
 
                 {/* Protected Routes */}
