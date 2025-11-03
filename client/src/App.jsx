@@ -56,7 +56,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/projects" element={<Projects />} />
               <Route path="/projects/:id" element={<ProjectDetails />} />
-              <Route path="/blog" element={<Blog />} />
+              <Route path="/blogs" element={<Blog />} />
               <Route path="/blogs/:id" element={<BlogDetails />} />
 
               {/* Protected Routes */}

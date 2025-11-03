@@ -1,23 +1,47 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { apiService } from "../../utils/api";
 
 const Blogs = () => {
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // ✅ Fetch blogs using apiService.blogs.getAll()
   const {
     data: blogsData,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["blogs"],
-    queryFn: () => axios.get("/api/blogs").then((res) => res.data),
+    queryKey: ["blogs", filter, searchTerm],
+    queryFn: () =>
+      apiService.blogs.getAll({
+        page: 1,
+        limit: 10,
+        category: filter !== "all" ? filter : undefined,
+        search: searchTerm || undefined,
+      }),
   });
 
-  // Safely handle the blogs data
+  // ✅ Safely handle possible data structures
   const blogs = blogsData?.blogs || blogsData || [];
+
+  // ✅ Function to get correct image URL
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return "/default-project.jpg";
+
+  if (imagePath.startsWith("http")) {
+    return imagePath;
+  }
+
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+  if (imagePath.includes("/")) {
+    return `${baseUrl}${imagePath}`;
+  } else {
+    return `${baseUrl}/uploads/blogs/${imagePath}`;
+  }
+};
 
   const filteredBlogs = blogs.filter((blog) => {
     const matchesCategory = filter === "all" || blog.category === filter;
@@ -136,9 +160,13 @@ const Blogs = () => {
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition duration-200"
               >
                 <img
-                  src={blog.coverImage || "/default-blog.jpg"}
+                  src={getImageUrl(blog.coverImage)}
                   alt={blog.title}
                   className="w-full h-48 object-cover"
+                  onError={(e) => {
+                    // If image fails to load, show default image
+                    e.target.src = "/default-blog.jpg";
+                  }}
                 />
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-2">

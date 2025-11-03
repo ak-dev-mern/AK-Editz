@@ -55,6 +55,15 @@ const projectSchema = new mongoose.Schema({
       type: String,
     },
   ],
+  // ADD THESE MISSING FIELDS:
+  views: {
+    type: Number,
+    default: 0,
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false,
+  },
   isActive: {
     type: Boolean,
     default: true,

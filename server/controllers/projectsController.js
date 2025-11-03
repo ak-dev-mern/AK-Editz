@@ -1,43 +1,6 @@
-import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
 import Project from "../models/Project.js";
 
-// ES6 equivalent of __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/projects/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-export const upload = multer({
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed"));
-    }
-  },
-});
-
-// Get all projects
+// Get all projects (Admin - shows all projects)
 export const getAllProjects = async (req, res) => {
   try {
     const {
@@ -47,10 +10,11 @@ export const getAllProjects = async (req, res) => {
       limit = 10,
       sortBy = "createdAt",
       sortOrder = "desc",
+      showAll = false, // Add this for admin vs public
     } = req.query;
 
-    // Build filter object
-    const filter = { isActive: true };
+    // For admin, don't filter by isActive unless specified
+    const filter = showAll === "true" ? {} : { isActive: true };
 
     if (category && category !== "all") {
       filter.category = category;
@@ -60,7 +24,9 @@ export const getAllProjects = async (req, res) => {
       filter.$or = [
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
+        { shortDescription: { $regex: search, $options: "i" } },
         { tags: { $in: [new RegExp(search, "i")] } },
+        { technologies: { $in: [new RegExp(search, "i")] } },
       ];
     }
 
@@ -81,12 +47,7 @@ export const getAllProjects = async (req, res) => {
       totalPages: Math.ceil(total / limit),
       currentPage: parseInt(page),
       total,
-      filters: {
-        category,
-        search,
-        sortBy,
-        sortOrder,
-      },
+      filters: { category, search, sortBy, sortOrder },
     });
   } catch (error) {
     console.error("Get projects error:", error);
@@ -106,26 +67,23 @@ export const getProjectById = async (req, res) => {
     );
 
     if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
     }
 
-    // Increment views
-    project.views = (project.views || 0) + 1;
-    await project.save();
+    // Only increment views for active projects
+    if (project.isActive) {
+      project.views = (project.views || 0) + 1;
+      await project.save();
+    }
 
-    res.json({
-      success: true,
-      project,
-    });
+    res.json({ success: true, project });
   } catch (error) {
     console.error("Get project error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching project",
-    });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error while fetching project" });
   }
 };
 
@@ -140,10 +98,7 @@ export const getFeaturedProjects = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(6);
 
-    res.json({
-      success: true,
-      projects: featuredProjects,
-    });
+    res.json({ success: true, projects: featuredProjects });
   } catch (error) {
     console.error("Get featured projects error:", error);
     res.status(500).json({
@@ -196,12 +151,20 @@ export const createProject = async (req, res) => {
     const projectData = {
       ...req.body,
       createdBy: req.user._id,
-      price: parseFloat(req.body.price),
-      technologies: JSON.parse(req.body.technologies || "[]"),
-      features: JSON.parse(req.body.features || "[]"),
-      tags: JSON.parse(req.body.tags || "[]"),
     };
 
+    // Parse numeric and array fields
+    if (req.body.price) projectData.price = parseFloat(req.body.price);
+    if (req.body.technologies)
+      projectData.technologies = JSON.parse(req.body.technologies);
+    if (req.body.features) projectData.features = JSON.parse(req.body.features);
+    if (req.body.tags) projectData.tags = JSON.parse(req.body.tags);
+    if (req.body.isActive !== undefined)
+      projectData.isActive = req.body.isActive === "true";
+    if (req.body.isFeatured !== undefined)
+      projectData.isFeatured = req.body.isFeatured === "true";
+
+    // Handle file uploads
     if (req.files && req.files.length > 0) {
       projectData.images = req.files.map(
         (file) => `/uploads/projects/${file.filename}`
@@ -210,8 +173,6 @@ export const createProject = async (req, res) => {
 
     const project = new Project(projectData);
     await project.save();
-
-    // Populate createdBy field in response
     await project.populate("createdBy", "name");
 
     res.status(201).json({
@@ -221,20 +182,15 @@ export const createProject = async (req, res) => {
     });
   } catch (error) {
     console.error("Create project error:", error);
-
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({
-        success: false,
-        message: "Validation error",
-        errors,
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Validation error", errors });
     }
-
-    res.status(500).json({
-      success: false,
-      message: "Server error while creating project",
-    });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error while creating project" });
   }
 };
 
@@ -242,43 +198,47 @@ export const createProject = async (req, res) => {
 export const updateProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
-    }
+    if (!project)
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
 
-    const updateData = {
-      ...req.body,
-      updatedAt: new Date(),
-    };
+    const updateData = { ...req.body, updatedAt: new Date() };
 
-    // Parse JSON fields if they exist
-    if (req.body.technologies) {
+    // Parse fields that come as strings
+    if (req.body.technologies)
       updateData.technologies = JSON.parse(req.body.technologies);
-    }
-    if (req.body.features) {
-      updateData.features = JSON.parse(req.body.features);
-    }
-    if (req.body.tags) {
-      updateData.tags = JSON.parse(req.body.tags);
-    }
-    if (req.body.price) {
-      updateData.price = parseFloat(req.body.price);
-    }
+    if (req.body.features) updateData.features = JSON.parse(req.body.features);
+    if (req.body.tags) updateData.tags = JSON.parse(req.body.tags);
+    if (req.body.price) updateData.price = parseFloat(req.body.price);
+    if (req.body.isActive !== undefined)
+      updateData.isActive = req.body.isActive === "true";
+    if (req.body.isFeatured !== undefined)
+      updateData.isFeatured = req.body.isFeatured === "true";
 
+    // Handle file uploads - replace or add images
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map(
         (file) => `/uploads/projects/${file.filename}`
       );
-      updateData.images = [...project.images, ...newImages].slice(0, 5); // Keep max 5 images
+
+      // If you want to replace all images:
+      // updateData.images = newImages;
+
+      // If you want to add to existing images (limit to 10):
+      updateData.images = [...(project.images || []), ...newImages].slice(
+        0,
+        10
+      );
     }
 
     const updatedProject = await Project.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true,
+      }
     ).populate("createdBy", "name");
 
     res.json({
@@ -288,20 +248,15 @@ export const updateProject = async (req, res) => {
     });
   } catch (error) {
     console.error("Update project error:", error);
-
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({
-        success: false,
-        message: "Validation error",
-        errors,
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Validation error", errors });
     }
-
-    res.status(500).json({
-      success: false,
-      message: "Server error while updating project",
-    });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error while updating project" });
   }
 };
 
@@ -309,25 +264,18 @@ export const updateProject = async (req, res) => {
 export const deleteProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
-    }
+    if (!project)
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
 
     await Project.findByIdAndDelete(req.params.id);
-
-    res.json({
-      success: true,
-      message: "Project deleted successfully",
-    });
+    res.json({ success: true, message: "Project deleted successfully" });
   } catch (error) {
     console.error("Delete project error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while deleting project",
-    });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error while deleting project" });
   }
 };
 
@@ -335,12 +283,10 @@ export const deleteProject = async (req, res) => {
 export const toggleProjectActive = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
-    }
+    if (!project)
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
 
     project.isActive = !project.isActive;
     await project.save();
@@ -365,12 +311,10 @@ export const toggleProjectActive = async (req, res) => {
 export const toggleProjectFeatured = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
-    }
+    if (!project)
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
 
     project.isFeatured = !project.isFeatured;
     await project.save();
@@ -442,13 +386,10 @@ export const getProjectStats = async (req, res) => {
 export const getSimilarProjects = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
-    }
+    if (!project)
+      return res
+        .status(404)
+        .json({ success: false, message: "Project not found" });
 
     const similarProjects = await Project.find({
       _id: { $ne: project._id },
@@ -459,10 +400,7 @@ export const getSimilarProjects = async (req, res) => {
       .sort({ views: -1, createdAt: -1 })
       .limit(4);
 
-    res.json({
-      success: true,
-      projects: similarProjects,
-    });
+    res.json({ success: true, projects: similarProjects });
   } catch (error) {
     console.error("Get similar projects error:", error);
     res.status(500).json({
@@ -470,34 +408,4 @@ export const getSimilarProjects = async (req, res) => {
       message: "Server error while fetching similar projects",
     });
   }
-};
-
-// Multer error handling middleware
-export const handleMulterError = (error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({
-        success: false,
-        message: "File too large. Maximum size is 5MB.",
-      });
-    }
-    if (error.code === "LIMIT_FILE_COUNT") {
-      return res.status(400).json({
-        success: false,
-        message: "Too many files. Maximum 5 images allowed.",
-      });
-    }
-  }
-
-  if (error.message === "Only image files are allowed") {
-    return res.status(400).json({
-      success: false,
-      message: "Only image files (JPEG, JPG, PNG, GIF, WEBP) are allowed",
-    });
-  }
-
-  res.status(500).json({
-    success: false,
-    message: "File upload error",
-  });
 };

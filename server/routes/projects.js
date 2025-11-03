@@ -11,10 +11,9 @@ import {
   toggleProjectFeatured,
   getProjectStats,
   getSimilarProjects,
-  upload,
-  handleMulterError,
 } from "../controllers/projectsController.js";
 import adminAuth from "../middleware/adminAuth.js";
+import { uploadProjectImages } from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -26,14 +25,11 @@ router.get("/similar/:id", getSimilarProjects);
 router.get("/:id", getProjectById);
 
 // Admin only routes
-router.post("/", adminAuth, upload.array("images", 5), createProject);
-router.put("/:id", adminAuth, upload.array("images", 5), updateProject);
+router.post("/", adminAuth, uploadProjectImages, createProject);
+router.put("/:id", adminAuth, uploadProjectImages, updateProject);
 router.delete("/:id", adminAuth, deleteProject);
 router.patch("/:id/toggle-active", adminAuth, toggleProjectActive);
 router.patch("/:id/toggle-featured", adminAuth, toggleProjectFeatured);
 router.get("/admin/stats", adminAuth, getProjectStats);
-
-// Multer error handling
-router.use(handleMulterError);
 
 export default router;

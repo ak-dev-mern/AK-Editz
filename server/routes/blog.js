@@ -10,8 +10,10 @@ import {
   getFeaturedBlogs,
   getBlogStats,
   togglePublishStatus,
+  getAllBlogsByAdmin,
 } from "../controllers/BlogController.js";
 import adminAuth from "../middleware/adminAuth.js";
+import { uploadBlogImage } from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -23,8 +25,10 @@ router.get("/:id", getBlogById);
 router.patch("/:id/views", incrementBlogViews);
 
 // Protected routes (admin only)
-router.post("/", adminAuth, createBlog);
-router.put("/:id", adminAuth, updateBlog);
+// Admin routes
+router.get("/admin/all", adminAuth, getAllBlogsByAdmin);
+router.post("/", adminAuth, uploadBlogImage, createBlog);
+router.put("/:id", adminAuth, uploadBlogImage, updateBlog);
 router.delete("/:id", adminAuth, deleteBlog);
 router.get("/admin/stats", adminAuth, getBlogStats);
 router.patch("/:id/toggle-publish", adminAuth, togglePublishStatus);

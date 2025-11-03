@@ -10,33 +10,35 @@ const api = axios.create({
 // Request interceptor to add auth token if available
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage (if using token instead of cookies)
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Add common headers
-    config.headers["Content-Type"] = "application/json";
+    // DON'T set Content-Type for FormData - let browser handle it
+    // Only set JSON content type if it's not FormData and not already set
+    if (!config.headers["Content-Type"] && !(config.data instanceof FormData)) {
+      config.headers["Content-Type"] = "application/json";
+    }
+
+    // If it's FormData, let the browser set the Content-Type with boundary
+    if (config.data instanceof FormData) {
+      // Remove any existing Content-Type to let browser set it automatically
+      delete config.headers["Content-Type"];
+    }
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => {
-    return response.data;
-  },
+  (response) => response.data,
   (error) => {
-    // Handle different error types
     let errorMessage = "An unexpected error occurred";
 
     if (error.response) {
-      // Server responded with error status
       const { status, data } = error.response;
 
       switch (status) {
@@ -45,7 +47,6 @@ api.interceptors.response.use(
           break;
         case 401:
           errorMessage = data.message || "Unauthorized access";
-          // Clear token and redirect to login if unauthorized
           localStorage.removeItem("token");
           window.dispatchEvent(new Event("unauthorized"));
           break;
@@ -77,19 +78,15 @@ api.interceptors.response.use(
           errorMessage = data.message || `Error ${status}`;
       }
 
-      // Include validation errors if available
       if (data.errors) {
         errorMessage += `: ${data.errors.join(", ")}`;
       }
     } else if (error.request) {
-      // Request was made but no response received
       errorMessage = "Network error: Unable to connect to server";
     } else {
-      // Something else happened
       errorMessage = error.message;
     }
 
-    // Create enhanced error object
     const enhancedError = new Error(errorMessage);
     enhancedError.status = error.response?.status;
     enhancedError.data = error.response?.data;
@@ -128,45 +125,11 @@ export const apiService = {
     getFeatured: () => api.get("/projects/featured"),
     getByCategory: (category) => api.get(`/projects/category/${category}`),
     getSimilar: (id) => api.get(`/projects/similar/${id}`),
-    create: (projectData) => {
-      const formData = new FormData();
 
-      // Append all fields to formData
-      Object.keys(projectData).forEach((key) => {
-        if (key === "images" && projectData.images) {
-          projectData.images.forEach((image) => {
-            formData.append("images", image);
-          });
-        } else {
-          formData.append(key, projectData[key]);
-        }
-      });
+    // Now sends JSON only (no FormData)
+    create: (projectData) => api.post("/projects", projectData),
+    update: (id, projectData) => api.put(`/projects/${id}`, projectData),
 
-      return api.post("/projects", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-    },
-    update: (id, projectData) => {
-      const formData = new FormData();
-
-      Object.keys(projectData).forEach((key) => {
-        if (key === "images" && projectData.images) {
-          projectData.images.forEach((image) => {
-            formData.append("images", image);
-          });
-        } else {
-          formData.append(key, projectData[key]);
-        }
-      });
-
-      return api.put(`/projects/${id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-    },
     delete: (id) => api.delete(`/projects/${id}`),
     toggleActive: (id) => api.patch(`/projects/${id}/toggle-active`),
     toggleFeatured: (id) => api.patch(`/projects/${id}/toggle-featured`),
@@ -176,6 +139,8 @@ export const apiService = {
   // Blog API
   blogs: {
     getAll: (params = {}) => api.get("/blogs", { params }),
+    getAdminAll: (params = {}, config = {}) =>
+      api.get("/blogs/admin/all", { params, ...config }),
     getById: (id) => api.get(`/blogs/${id}`),
     getFeatured: () => api.get("/blogs/featured"),
     getByCategory: (category) => api.get(`/blogs/category/${category}`),
@@ -195,10 +160,7 @@ export const apiService = {
     getUserPayments: () => api.get("/payments/user-payments"),
     getPaymentById: (id) => api.get(`/payments/${id}`),
     downloadInvoice: (id) =>
-      api.get(`/payments/invoice/${id}`, {
-        responseType: "blob",
-      }),
-    // Admin only
+      api.get(`/payments/invoice/${id}`, { responseType: "blob" }),
     getAll: () => api.get("/payments/admin/all"),
     getStats: () => api.get("/payments/admin/stats/overview"),
     refundPayment: (id) => api.post(`/payments/admin/refund/${id}`),
@@ -207,38 +169,24 @@ export const apiService = {
 
 // Utility functions
 export const apiUtils = {
-  // Handle API errors in components
   handleError: (error, customHandler) => {
     console.error("API Error:", error);
-
     if (customHandler) {
       customHandler(error);
       return;
     }
-
-    // Default error handling (you can integrate with your notification system)
     const message = error.message || "Something went wrong";
-
-    // Example: Show toast notification
     if (typeof window !== "undefined" && window.toast) {
       window.toast.error(message);
     } else {
-      alert(message); // Fallback
+      alert(message);
     }
   },
-
-  // Check if error is a specific type
   isUnauthorized: (error) => error.status === 401,
   isNotFound: (error) => error.status === 404,
   isServerError: (error) => error.status >= 500,
-
-  // Extract validation errors
-  getValidationErrors: (error) => {
-    return error.data?.errors || [];
-  },
+  getValidationErrors: (error) => error.data?.errors || [],
 };
 
-// Export the raw axios instance for custom requests
 export { api as axiosInstance };
-
 export default apiService;

@@ -1,12 +1,31 @@
 import Blog from "../models/Blog.js";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
 // Get all blogs
 export const getAllBlogs = async (req, res) => {
   try {
     const { page = 1, limit = 10, category, search } = req.query;
+    let user = null;
 
-    // Build filter object
-    const filter = { isPublished: true };
+    // Optional token check (for admin)
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        user = await User.findById(decoded.id);
+      } catch (err) {
+        // ignore invalid token, treat as public
+      }
+    }
+
+    const filter = {};
+
+    // If not admin, only show published blogs
+    if (!user || user.role !== "admin") {
+      filter.isPublished = true;
+    }
 
     if (category && category !== "all") {
       filter.category = category.toLowerCase();
@@ -33,6 +52,50 @@ export const getAllBlogs = async (req, res) => {
       blogs,
       totalPages: Math.ceil(total / limit),
       currentPage: parseInt(page),
+      total,
+    });
+  } catch (error) {
+    console.error("Get all blogs error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching blogs",
+    });
+  }
+};
+
+// Get all blogs (admins see everything, users only published)
+export const getAllBlogsByAdmin = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, category, search } = req.query;
+    const isAdmin = req.user?.role === "admin";
+
+    // Filter object
+    const filter = {};
+    if (!isAdmin) filter.isPublished = true; // only published for non-admins
+
+    if (category && category !== "all") filter.category = category.toLowerCase();
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { content: { $regex: search, $options: "i" } },
+        { tags: { $in: [new RegExp(search, "i")] } },
+      ];
+    }
+
+    const blogs = await Blog.find(filter)
+      .populate("author", "name")
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
+
+    const total = await Blog.countDocuments(filter);
+
+    res.json({
+      success: true,
+      blogs,
+      totalPages: Math.ceil(total / limit),
+      currentPage: Number(page),
       total,
     });
   } catch (error) {
@@ -75,85 +138,65 @@ export const getBlogById = async (req, res) => {
 // Create blog
 export const createBlog = async (req, res) => {
   try {
-    const blog = new Blog({
-      ...req.body,
-      author: req.user._id,
-    });
+    const blogData = { ...req.body, author: req.user._id };
 
-    await blog.save();
-
-    // Populate author in response
-    await blog.populate("author", "name");
-
-    res.status(201).json({
-      success: true,
-      message: "Blog created successfully",
-      blog,
-    });
-  } catch (error) {
-    console.error("Create blog error:", error);
-
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({
-        success: false,
-        message: "Validation error",
-        errors,
-      });
+    if (req.file) {
+       blogData.coverImage = `/uploads/blogs/${req.file.filename}`;
     }
 
-    res.status(500).json({
-      success: false,
-      message: "Server error while creating blog",
-    });
+    // Convert tags to array if sent as string
+    if (blogData.tags && typeof blogData.tags === "string") {
+      blogData.tags = blogData.tags.split(",").map((t) => t.trim());
+    }
+
+    const blog = await Blog.create(blogData);
+    await blog.populate("author", "name");
+
+    res.status(201).json({ success: true, blog });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
 // Update blog
 export const updateBlog = async (req, res) => {
   try {
-    const blog = await Blog.findByIdAndUpdate(
-      req.params.id,
-      {
-        ...req.body,
-        updatedAt: Date.now(),
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    ).populate("author", "name");
+    const updateData = {
+      ...req.body,
+      updatedAt: Date.now(),
+    };
+
+    // Handle uploaded image
+    if (req.file) {
+       updateData.coverImage = `/uploads/blogs/${req.file.filename}`;
+    }
+
+    // Convert tags from JSON string if sent
+    if (updateData.tags && typeof updateData.tags === "string") {
+      updateData.tags = JSON.parse(updateData.tags);
+    }
+
+    const blog = await Blog.findByIdAndUpdate(req.params.id, updateData, {
+      new: true,
+      runValidators: true,
+    }).populate("author", "name");
 
     if (!blog) {
-      return res.status(404).json({
-        success: false,
-        message: "Blog not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Blog not found" });
     }
 
-    res.json({
-      success: true,
-      message: "Blog updated successfully",
-      blog,
-    });
+    res.json({ success: true, blog });
   } catch (error) {
     console.error("Update blog error:", error);
-
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({
-        success: false,
-        message: "Validation error",
-        errors,
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Server error while updating blog",
-    });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error while updating blog" });
   }
 };
+
 
 // Delete blog
 export const deleteBlog = async (req, res) => {
