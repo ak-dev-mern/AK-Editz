@@ -1,23 +1,15 @@
 import Project from "../models/Project.js";
 
-// Get all projects (Admin - shows all projects)
+// Public route - only active projects
 export const getAllProjects = async (req, res) => {
   try {
-    const {
-      category,
-      search,
-      page = 1,
-      limit = 10,
-      sortBy = "createdAt",
-      sortOrder = "desc",
-      showAll = false, // Add this for admin vs public
-    } = req.query;
+    const { page = 1, limit = 10, category, search } = req.query;
 
-    // For admin, don't filter by isActive unless specified
-    const filter = showAll === "true" ? {} : { isActive: true };
+    // Filter object - only active projects for public
+    const filter = { isActive: true };
 
     if (category && category !== "all") {
-      filter.category = category;
+      filter.category = category.toLowerCase();
     }
 
     if (search) {
@@ -25,19 +17,16 @@ export const getAllProjects = async (req, res) => {
         { title: { $regex: search, $options: "i" } },
         { description: { $regex: search, $options: "i" } },
         { shortDescription: { $regex: search, $options: "i" } },
-        { tags: { $in: [new RegExp(search, "i")] } },
         { technologies: { $in: [new RegExp(search, "i")] } },
+        { tags: { $in: [new RegExp(search, "i")] } },
       ];
     }
 
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
-
     const projects = await Project.find(filter)
       .populate("createdBy", "name")
-      .sort(sortOptions)
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
 
     const total = await Project.countDocuments(filter);
 
@@ -45,9 +34,8 @@ export const getAllProjects = async (req, res) => {
       success: true,
       projects,
       totalPages: Math.ceil(total / limit),
-      currentPage: parseInt(page),
+      currentPage: Number(page),
       total,
-      filters: { category, search, sortBy, sortOrder },
     });
   } catch (error) {
     console.error("Get projects error:", error);
@@ -58,6 +46,64 @@ export const getAllProjects = async (req, res) => {
   }
 };
 
+// Admin route - all projects (active and inactive)
+export const getAllProjectsByAdmin = async (req, res) => {
+  const isAdmin = req.user?.role === "admin";
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      category,
+      search,
+      showInactive = "false",
+    } = req.query;
+
+    // Filter object - admin sees everything by default
+    const filter = {};
+
+    // If showInactive is false, only show active projects
+    if (!isAdmin) {
+      filter.isActive = true;
+    }
+
+    if (category && category !== "all") {
+      filter.category = category.toLowerCase();
+    }
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { shortDescription: { $regex: search, $options: "i" } },
+        { technologies: { $in: [new RegExp(search, "i")] } },
+        { tags: { $in: [new RegExp(search, "i")] } },
+      ];
+    }
+
+    const projects = await Project.find(filter)
+      .populate("createdBy", "name")
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
+
+    const total = await Project.countDocuments(filter);
+
+    res.json({
+      success: true,
+      projects,
+      totalPages: Math.ceil(total / limit),
+      currentPage: Number(page),
+      total,
+      showInactive: showInactive === "true",
+    });
+  } catch (error) {
+    console.error("Get admin projects error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching projects",
+    });
+  }
+};
 // Get single project
 export const getProjectById = async (req, res) => {
   try {
@@ -87,7 +133,7 @@ export const getProjectById = async (req, res) => {
   }
 };
 
-// Get featured projects
+// Get featured projects (public route)
 export const getFeaturedProjects = async (req, res) => {
   try {
     const featuredProjects = await Project.find({
@@ -108,7 +154,7 @@ export const getFeaturedProjects = async (req, res) => {
   }
 };
 
-// Get projects by category
+// Get projects by category (public route)
 export const getProjectsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
@@ -145,7 +191,7 @@ export const getProjectsByCategory = async (req, res) => {
   }
 };
 
-// Create project
+// Create project (admin only)
 export const createProject = async (req, res) => {
   try {
     const projectData = {
@@ -194,7 +240,7 @@ export const createProject = async (req, res) => {
   }
 };
 
-// Update project
+// Update project (admin only)
 export const updateProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -216,16 +262,11 @@ export const updateProject = async (req, res) => {
     if (req.body.isFeatured !== undefined)
       updateData.isFeatured = req.body.isFeatured === "true";
 
-    // Handle file uploads - replace or add images
+    // Handle file uploads - add to existing images
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map(
         (file) => `/uploads/projects/${file.filename}`
       );
-
-      // If you want to replace all images:
-      // updateData.images = newImages;
-
-      // If you want to add to existing images (limit to 10):
       updateData.images = [...(project.images || []), ...newImages].slice(
         0,
         10
@@ -260,7 +301,7 @@ export const updateProject = async (req, res) => {
   }
 };
 
-// Delete project
+// Delete project (admin only)
 export const deleteProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -279,7 +320,7 @@ export const deleteProject = async (req, res) => {
   }
 };
 
-// Toggle project active status
+// Toggle project active status (admin only)
 export const toggleProjectActive = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -307,7 +348,7 @@ export const toggleProjectActive = async (req, res) => {
   }
 };
 
-// Toggle project featured status
+// Toggle project featured status (admin only)
 export const toggleProjectFeatured = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -335,7 +376,7 @@ export const toggleProjectFeatured = async (req, res) => {
   }
 };
 
-// Get project statistics
+// Get project statistics (admin only)
 export const getProjectStats = async (req, res) => {
   try {
     const totalProjects = await Project.countDocuments();
@@ -382,7 +423,7 @@ export const getProjectStats = async (req, res) => {
   }
 };
 
-// Get similar projects
+// Get similar projects (public route)
 export const getSimilarProjects = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);

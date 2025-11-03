@@ -11,6 +11,7 @@ import {
   toggleProjectFeatured,
   getProjectStats,
   getSimilarProjects,
+  getAllProjectsByAdmin,
 } from "../controllers/projectsController.js";
 import adminAuth from "../middleware/adminAuth.js";
 import { uploadProjectImages } from "../middleware/upload.js";
@@ -25,6 +26,7 @@ router.get("/similar/:id", getSimilarProjects);
 router.get("/:id", getProjectById);
 
 // Admin only routes
+router.get("/admin/all", adminAuth, getAllProjectsByAdmin);
 router.post("/", adminAuth, uploadProjectImages, createProject);
 router.put("/:id", adminAuth, uploadProjectImages, updateProject);
 router.delete("/:id", adminAuth, deleteProject);

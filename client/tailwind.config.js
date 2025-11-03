@@ -21,6 +21,26 @@ export default {
           900: "#0c4a6e",
         },
       },
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: 0 },
+          "100%": { opacity: 1 },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
+      },
+      animation: {
+        "fade-in": "fadeIn 0.6s ease-in-out",
+        float: "float 3s ease-in-out infinite",
+      },
+      boxShadow: {
+        glow: "0 0 20px rgba(14, 165, 233, 0.3)",
+      },
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+      },
     },
   },
   plugins: [forms, typography, aspectRatio],

@@ -29,7 +29,7 @@ const ProjectsManagement = () => {
     try {
       setLoading(true);
       setError("");
-      const response = await apiService.projects.getAll({
+      const response = await apiService.projects.getAdminAll({
         headers: {
           Authorization: `Bearer ${user?.token}`,
         },

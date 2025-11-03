@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Mail, MapPin, Clock } from "lucide-react";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -7,6 +8,8 @@ const Contact = () => {
     subject: "",
     message: "",
   });
+
+  const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -17,198 +20,175 @@ const Contact = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission
-    alert("Thank you for your message! We will get back to you soon.");
-    setFormData({
-      name: "",
-      email: "",
-      subject: "",
-      message: "",
-    });
+    setSubmitted(true);
+    setTimeout(() => setSubmitted(false), 4000);
+    setFormData({ name: "", email: "", subject: "", message: "" });
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Contact Us</h1>
-          <p className="text-gray-600 mb-8">
-            Have questions? We'd love to hear from you. Send us a message and
-            we'll respond as soon as possible.
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-16">
+      <div className="max-w-6xl mx-auto px-6 lg:px-12">
+        {/* Header Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-extrabold text-gray-900 mb-4">
+            Contact <span className="text-blue-600">Akeditz</span>
+          </h1>
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+            Have questions or feedback? We're here to help. Drop us a message
+            and we'll get back to you shortly.
           </p>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Contact Information */}
-            <div className="lg:col-span-1">
-              <h2 className="text-xl font-semibold mb-4">Get in Touch</h2>
+        {/* Contact Container */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-stretch">
+          {/* Contact Info Card */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 space-y-8 hover:shadow-2xl transition duration-300">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Get in Touch
+            </h2>
 
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-primary-600 mt-1 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <div>
-                    <h3 className="font-semibold">Email</h3>
-                    <p className="text-gray-600">akeditzdj@gmail.com</p>
-                  </div>
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                  <Mail size={20} />
                 </div>
-
-                <div className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-primary-600 mt-1 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                  <div>
-                    <h3 className="font-semibold">Based In</h3>
-                    <p className="text-gray-600">India</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-primary-600 mt-1 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <div>
-                    <h3 className="font-semibold">Response Time</h3>
-                    <p className="text-gray-600">Within 24 hours</p>
-                  </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Email</h3>
+                  <p className="text-gray-600 text-sm">akeditzdj@gmail.com</p>
                 </div>
               </div>
 
-              <div className="mt-8 p-4 bg-primary-50 rounded-lg">
-                <h3 className="font-semibold text-primary-900 mb-2">
-                  Before Contacting
-                </h3>
-                <ul className="text-sm text-primary-700 space-y-1">
-                  <li>• Check our FAQ page</li>
-                  <li>• Search our documentation</li>
-                  <li>• Include relevant details</li>
-                </ul>
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-full bg-green-100 text-green-600">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Based In</h3>
+                  <p className="text-gray-600 text-sm">India</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-full bg-purple-100 text-purple-600">
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Response Time</h3>
+                  <p className="text-gray-600 text-sm">Within 24 hours</p>
+                </div>
               </div>
             </div>
 
-            {/* Contact Form */}
-            <div className="lg:col-span-2">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label
-                      htmlFor="name"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Your Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="email"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                </div>
+            <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <h3 className="font-semibold text-blue-900 mb-2">
+                Before Contacting
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Check our FAQ page</li>
+                <li>• Search our documentation</li>
+                <li>• Include all relevant details</li>
+              </ul>
+            </div>
+          </div>
 
+          {/* Contact Form */}
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition duration-300">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Send a Message
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label
-                    htmlFor="subject"
+                    htmlFor="name"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Subject
+                    Your Name
                   </label>
                   <input
                     type="text"
-                    id="subject"
-                    name="subject"
-                    value={formData.subject}
+                    id="name"
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   />
                 </div>
-
                 <div>
                   <label
-                    htmlFor="message"
+                    htmlFor="email"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Message
+                    Email Address
                   </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    rows="6"
-                    value={formData.message}
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-                  ></textarea>
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
                 </div>
+              </div>
 
-                <button
-                  type="submit"
-                  className="bg-primary-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-primary-700 transition duration-200"
+              <div>
+                <label
+                  htmlFor="subject"
+                  className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Send Message
-                </button>
-              </form>
-            </div>
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  id="subject"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="message"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Message
+                </label>
+                <textarea
+                  id="message"
+                  name="message"
+                  rows="6"
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                ></textarea>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:opacity-90 transition-all duration-200"
+              >
+                Send Message
+              </button>
+
+              {submitted && (
+                <p className="text-green-600 font-medium mt-4 animate-fade-in">
+                  ✅ Thank you! Your message has been sent.
+                </p>
+              )}
+            </form>
           </div>
         </div>
       </div>
+
+      {/* Subtle background pattern */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[radial-gradient(circle_at_1px_1px,_#4f46e5_1px,_transparent_0)] bg-[length:20px_20px]" />
     </div>
   );
 };

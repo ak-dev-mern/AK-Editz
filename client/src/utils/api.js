@@ -122,6 +122,8 @@ export const apiService = {
   projects: {
     getAll: (params = {}) => api.get("/projects", { params }),
     getById: (id) => api.get(`/projects/${id}`),
+    getAdminAll: (params = {}, config = {}) =>
+      api.get("/projects/admin/all", { params, ...config }),
     getFeatured: () => api.get("/projects/featured"),
     getByCategory: (category) => api.get(`/projects/category/${category}`),
     getSimilar: (id) => api.get(`/projects/similar/${id}`),
