@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Mail, MapPin, Clock } from "lucide-react";
+import { Mail, MapPin, Clock, Send } from "lucide-react";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -10,19 +10,48 @@ const Contact = () => {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+    setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 4000);
-    setFormData({ name: "", email: "", subject: "", message: "" });
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch("http://localhost:5000/api/contact/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to send message");
+      }
+
+      if (data.success) {
+        setSubmitted(true);
+        setFormData({ name: "", email: "", subject: "", message: "" });
+        setTimeout(() => setSubmitted(false), 5000);
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setError(error.message || "Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -112,7 +141,8 @@ const Contact = () => {
                     value={formData.name}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    disabled={loading}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
                   />
                 </div>
                 <div>
@@ -129,7 +159,8 @@ const Contact = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    disabled={loading}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
                   />
                 </div>
               </div>
@@ -148,7 +179,8 @@ const Contact = () => {
                   value={formData.subject}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  disabled={loading}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
                 />
               </div>
 
@@ -166,29 +198,51 @@ const Contact = () => {
                   value={formData.message}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  disabled={loading}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
                 ></textarea>
               </div>
 
               <button
                 type="submit"
-                className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:opacity-90 transition-all duration-200"
+                disabled={loading}
+                className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Send Message
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    Send Message
+                  </>
+                )}
               </button>
 
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 font-medium flex items-center gap-2">
+                    <span>❌</span>
+                    {error}
+                  </p>
+                </div>
+              )}
+
               {submitted && (
-                <p className="text-green-600 font-medium mt-4 animate-fade-in">
-                  ✅ Thank you! Your message has been sent.
-                </p>
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-700 font-medium flex items-center gap-2">
+                    <span>✅</span>
+                    Thank you! Your message has been sent. We'll get back to you
+                    soon.
+                  </p>
+                </div>
               )}
             </form>
           </div>
         </div>
       </div>
-
-      {/* Subtle background pattern */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[radial-gradient(circle_at_1px_1px,_#4f46e5_1px,_transparent_0)] bg-[length:20px_20px]" />
     </div>
   );
 };

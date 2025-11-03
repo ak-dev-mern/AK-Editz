@@ -107,6 +107,11 @@ export const apiService = {
     changePassword: (passwordData) =>
       api.put("/auth/change-password", passwordData),
     logout: () => api.post("/auth/logout"),
+    forgotPassword: (data) => api.post("/auth/forgot-password", data),
+    resetPassword: (token, data) =>
+      api.post(`/auth/reset-password/${token}`, data),
+    validateResetToken: (token) =>
+      api.get(`/auth/validate-reset-token/${token}`),
   },
 
   // Users API (Admin only)

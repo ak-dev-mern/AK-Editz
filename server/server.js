@@ -12,6 +12,8 @@ import userRoutes from "./routes/users.js";
 import projectRoutes from "./routes/projects.js";
 import blogRoutes from "./routes/blog.js";
 import paymentRoutes from "./routes/payments.js";
+import contactRoutes from "./routes/contact.js";
+import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +41,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Basic route for testing
 app.get("/", (req, res) => {
@@ -66,6 +69,10 @@ app.get("/api/health", (req, res) => {
     environment: process.env.NODE_ENV || "development",
   });
 });
+
+// Error handling middleware
+app.use(notFound);
+app.use(errorHandler);
 
 // MongoDB Connection
 const MONGODB_URI =

@@ -170,10 +170,12 @@ const ChatBot = () => {
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <span className="text-lg">🤖</span>
+                  <span className="text-lg bg-black rounded-3xl">
+                    <img src="/Logo-1.png" alt="Ak Editz Logo" />
+                  </span>
                 </div>
                 <div>
-                  <h3 className="font-semibold">Dev Assistant</h3>
+                  <h3 className="font-semibold">AK Editz Assistance</h3>
                   <div className="flex items-center space-x-1">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                     <span className="text-xs text-blue-100">Online now</span>
@@ -316,7 +318,7 @@ const ChatBot = () => {
       </div>
 
       {/* Add some custom styles for the animation */}
-      <style jsx>{`
+      <style jsx="true">{`
         @keyframes fade-in {
           from {
             opacity: 0;

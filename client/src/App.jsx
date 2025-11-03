@@ -34,6 +34,8 @@ import PrivacyPolicy from "./pages/Main/PrivacyPolicy";
 import TermsOfService from "./pages/Main/TermsOfService";
 import HelpCenter from "./pages/Main/HelpCenter";
 import { ChatBotProvider } from "./components/ChatBot/ChatBotProvider";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
+import ResetPassword from "./pages/Auth/ResetPassword";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -68,6 +70,11 @@ function App() {
                 <Route path="/projects/:id" element={<ProjectDetails />} />
                 <Route path="/blogs" element={<Blog />} />
                 <Route path="/blogs/:id" element={<BlogDetails />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route
+                  path="/reset-password/:token"
+                  element={<ResetPassword />}
+                />
 
                 {/* Protected Routes */}
                 <Route
