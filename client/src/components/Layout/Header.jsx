@@ -19,10 +19,11 @@ const Header = () => {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">A</span>
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-800 to-purple-800 rounded-lg flex items-center justify-center">
+              {/* <span className="text-white font-bold text-lg">A</span> */}
+              <img src="/Logo-1.png" alt="AK Editz Logo" />
             </div>
-            <span className="text-xl font-bold text-gray-800">Akeditz</span>
+            <span className="text-xl font-bold text-gray-800">AK Editz</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -32,6 +33,12 @@ const Header = () => {
               className="text-gray-600 hover:text-blue-600 transition-colors"
             >
               Home
+            </Link>
+            <Link
+              to="/portfolio"
+              className="text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              Portfolio
             </Link>
             <Link
               to="/projects"
@@ -149,6 +156,12 @@ const Header = () => {
             <nav className="flex flex-col space-y-3 mt-3">
               <Link to="/" className="text-gray-600 hover:text-blue-600 py-2">
                 Home
+              </Link>
+              <Link
+                to="/portfolio"
+                className="text-gray-600 hover:text-blue-600 py-2"
+              >
+                Portfolio
               </Link>
               <Link
                 to="/projects"

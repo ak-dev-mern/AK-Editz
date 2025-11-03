@@ -29,6 +29,11 @@ import BlogsManagement from "./pages/Admin/BlogsManagement";
 import PaymentsManagement from "./pages/Admin/PaymentsManagement";
 
 import "./styles/globals.css";
+import Portfolio from "./pages/Main/Portfolio";
+import PrivacyPolicy from "./pages/Main/PrivacyPolicy";
+import TermsOfService from "./pages/Main/TermsOfService";
+import HelpCenter from "./pages/Main/HelpCenter";
+import { ChatBotProvider } from "./components/ChatBot/ChatBotProvider";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -45,90 +50,96 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <Layout>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:id" element={<ProjectDetails />} />
-              <Route path="/blogs" element={<Blog />} />
-              <Route path="/blogs/:id" element={<BlogDetails />} />
+        <ChatBotProvider>
+          <Router>
+            <Layout>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/portfolio" element={<Portfolio />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/privacypolicy" element={<PrivacyPolicy />} />
+                <Route path="/termsofservice" element={<TermsOfService />} />
+                <Route path="/helpcenter" element={<HelpCenter />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/:id" element={<ProjectDetails />} />
+                <Route path="/blogs" element={<Blog />} />
+                <Route path="/blogs/:id" element={<BlogDetails />} />
 
-              {/* Protected Routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/checkout/:projectId"
-                element={
-                  <ProtectedRoute>
-                    <Checkout />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Protected Routes */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/checkout/:projectId"
+                  element={
+                    <ProtectedRoute>
+                      <Checkout />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Admin Routes */}
-              <Route
-                path="/admin"
-                element={
-                  <AdminRoute>
-                    <AdminPanel />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/users"
-                element={
-                  <AdminRoute>
-                    <UsersManagement />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/projects"
-                element={
-                  <AdminRoute>
-                    <ProjectsManagement />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/blogs"
-                element={
-                  <AdminRoute>
-                    <BlogsManagement />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/payments"
-                element={
-                  <AdminRoute>
-                    <PaymentsManagement />
-                  </AdminRoute>
-                }
-              />
-            </Routes>
-          </Layout>
-        </Router>
+                {/* Admin Routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminRoute>
+                      <AdminPanel />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <AdminRoute>
+                      <UsersManagement />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/projects"
+                  element={
+                    <AdminRoute>
+                      <ProjectsManagement />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/blogs"
+                  element={
+                    <AdminRoute>
+                      <BlogsManagement />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/payments"
+                  element={
+                    <AdminRoute>
+                      <PaymentsManagement />
+                    </AdminRoute>
+                  }
+                />
+              </Routes>
+            </Layout>
+          </Router>
+        </ChatBotProvider>
       </AuthProvider>
 
       {/* React Query Devtools - remove in production */}

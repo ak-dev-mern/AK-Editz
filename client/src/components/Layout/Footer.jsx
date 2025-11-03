@@ -10,7 +10,8 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-2">
             <Link to="/" className="flex items-center space-x-2 mb-4">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">A</span>
+                {/* <span className="text-white font-bold">A</span> */}
+                <img src="/Logo-1.png" alt="AK Editz Logo" />
               </div>
               <span className="text-xl font-bold">Akeditz</span>
             </Link>
@@ -60,6 +61,14 @@ const Footer = () => {
               </li>
               <li>
                 <Link
+                  to="/portfolio"
+                  className="text-gray-300 hover:text-white transition-colors"
+                >
+                  Portfolio
+                </Link>
+              </li>
+              <li>
+                <Link
                   to="/projects"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
@@ -99,7 +108,7 @@ const Footer = () => {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/privacypolicy"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
                   Privacy Policy
@@ -107,7 +116,7 @@ const Footer = () => {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="termsofservice"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
                   Terms of Service
@@ -115,7 +124,7 @@ const Footer = () => {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/helpcenter"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
                   Help Center
