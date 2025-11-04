@@ -23,7 +23,9 @@ const Header = () => {
               {/* <span className="text-white font-bold text-lg">A</span> */}
               <img src="/Logo-1.png" alt="AK Editz Logo" />
             </div>
-            <span className="text-xl font-bold text-gray-800">AK Editz</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
+              AK Editz
+            </span>
           </Link>
 
           {/* Desktop Navigation */}

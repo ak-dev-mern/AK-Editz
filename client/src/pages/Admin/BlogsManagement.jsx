@@ -501,14 +501,21 @@ const BlogForm = ({ blog, onSubmit, onCancel }) => {
           <label className="block text-sm font-medium text-gray-700">
             Category
           </label>
-          <input
-            type="text"
+          <select
             name="category"
             value={formData.category}
             onChange={handleChange}
             required
             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-          />
+          >
+            <option value="">Select a category</option>
+            <option value="web development">Web Development</option>
+            <option value="mobile development">Mobile Development</option>
+            <option value="programming">Programming</option>
+            <option value="tutorial">Tutorial</option>
+            <option value="technology">Technology</option>
+            <option value="other">Other</option>
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">

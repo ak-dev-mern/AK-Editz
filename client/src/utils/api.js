@@ -121,6 +121,7 @@ export const apiService = {
     update: (id, userData) => api.put(`/users/${id}`, userData),
     delete: (id) => api.delete(`/users/${id}`),
     getStats: () => api.get("/users/stats"),
+    getUserCount: () => api.get("/users/count"),
   },
 
   // Projects API

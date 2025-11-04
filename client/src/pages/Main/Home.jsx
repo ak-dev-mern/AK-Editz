@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiService, apiUtils } from "../../utils/api";
+import { useAuth } from "../../contexts/AuthContext";
 import Loader from "../../components/UI/Loader";
 import NewsletterSubscription from "../../components/Newsletter/NewsletterSubscription";
+import { Lock } from "lucide-react";
 
 const Home = () => {
   const [featuredProjects, setFeaturedProjects] = useState([]);
@@ -11,10 +13,13 @@ const Home = () => {
   const [testimonials, setTestimonials] = useState([]);
   const [technologies, setTechnologies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   // ✅ Function to get proper image URL
   const getImageUrl = (path) => {
-    if (!path) return "/default-project.jpg"; // fallback image
+    if (!path) return "/default-project.jpg";
     if (path.startsWith("http")) return path;
 
     const baseUrl =
@@ -28,37 +33,98 @@ const Home = () => {
     fetchHomeData();
   }, []);
 
+  const handleViewDetails = (projectId) => {
+    if (!user) {
+      // Redirect to login with return URL
+      navigate("/login", { state: { from: `/projects/${projectId}` } });
+      return;
+    }
+    // If user is logged in, navigate to project details
+    navigate(`/projects/${projectId}`);
+  };
+
   const fetchHomeData = async () => {
     try {
       setLoading(true);
+      setError("");
 
-      const [projectStatsRes, blogStatsRes, userStatsRes] = await Promise.all([
-        apiService.projects.getStats(),
-        apiService.blogs.getStats(),
-        apiService.users.getStats(),
+      // Fetch all data in parallel with proper error handling
+      const [projectsRes, blogsRes, userCountRes] = await Promise.allSettled([
+        apiService.projects.getAll({ limit: 6, featured: true }),
+        apiService.blogs.getAll({ limit: 3 }),
+        apiService.users.getUserCount(), // Use your dedicated user count API
       ]);
 
-      // set stats
-      setStats({
-        projects:
-          projectStatsRes.stats?.totalProjects ||
-          projectStatsRes.totalProjects ||
-          0,
-        blogs: blogStatsRes.stats?.totalBlogs || blogStatsRes.totalBlogs || 0,
-        users: userStatsRes.stats?.totalUsers || userStatsRes.totalUsers || 0,
-      });
+      // Handle projects response
+      if (projectsRes.status === "fulfilled") {
+        const projectsData = projectsRes.value;
 
-      // set featured projects & latest blogs
-      setFeaturedProjects(
-        projectStatsRes.stats?.recentProjects ||
-          projectStatsRes.recentProjects ||
-          []
-      );
-      setFeaturedBlogs(
-        blogStatsRes.stats?.recentBlogs || blogStatsRes.recentBlogs || []
-      );
+        // Extract projects from different response structures
+        let projects = [];
+        if (Array.isArray(projectsData)) {
+          projects = projectsData;
+        } else if (projectsData?.projects) {
+          projects = projectsData.projects;
+        } else if (projectsData?.data?.projects) {
+          projects = projectsData.data.projects;
+        } else if (projectsData?.data && Array.isArray(projectsData.data)) {
+          projects = projectsData.data;
+        }
 
-      // Mock testimonials and technologies (you can replace with API calls)
+        setFeaturedProjects(projects.slice(0, 6));
+
+        // Set project count from the actual data
+        setStats((prev) => ({ ...prev, projects: projects.length }));
+      } else {
+        console.error("Projects fetch error:", projectsRes.reason);
+        setFeaturedProjects([]);
+      }
+
+      // Handle blogs response
+      if (blogsRes.status === "fulfilled") {
+        const blogsData = blogsRes.value;
+
+        // Extract blogs from different response structures
+        let blogs = [];
+        if (Array.isArray(blogsData)) {
+          blogs = blogsData;
+        } else if (blogsData?.blogs) {
+          blogs = blogsData.blogs;
+        } else if (blogsData?.data?.blogs) {
+          blogs = blogsData.data.blogs;
+        } else if (blogsData?.data && Array.isArray(blogsData.data)) {
+          blogs = blogsData.data;
+        }
+
+        setFeaturedBlogs(blogs.slice(0, 3));
+
+        // Set blog count from the actual data
+        setStats((prev) => ({ ...prev, blogs: blogs.length }));
+      } else {
+        console.error("Blogs fetch error:", blogsRes.reason);
+        setFeaturedBlogs([]);
+      }
+
+      // Handle user count response
+      if (userCountRes.status === "fulfilled") {
+        const userCountData = userCountRes.value;
+
+        // Your API returns { success: true, totalUsers: number }
+        if (userCountData.success && userCountData.totalUsers !== undefined) {
+          setStats((prev) => ({ ...prev, users: userCountData.totalUsers }));
+        } else {
+          console.error(
+            "Invalid user count response structure:",
+            userCountData
+          );
+          setStats((prev) => ({ ...prev, users: 0 }));
+        }
+      } else {
+        console.error("User count fetch error:", userCountRes.reason);
+        setStats((prev) => ({ ...prev, users: 0 }));
+      }
+
+      // Mock testimonials and technologies
       setTestimonials([
         {
           id: 1,
@@ -103,6 +169,8 @@ const Home = () => {
         { name: "GraphQL", icon: "📊", category: "API" },
       ]);
     } catch (error) {
+      console.error("Home page data fetch error:", error);
+      setError("Failed to load home page data. Please refresh the page.");
       apiUtils.handleError(error);
     } finally {
       setLoading(false);
@@ -130,6 +198,30 @@ const Home = () => {
 
   return (
     <div className="min-h-screen text-gray-800">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 text-white overflow-hidden">
         <div className="absolute inset-0 bg-[url('/hero-pattern.svg')] opacity-10 bg-cover"></div>
@@ -149,12 +241,20 @@ const Home = () => {
               Explore Projects
             </Link>
             <Link
-              to="/blog"
+              to="/blogs"
               className="border-2 border-white px-8 py-3 rounded-xl font-semibold hover:bg-white hover:text-blue-700 transition-all"
             >
               Read Blog
             </Link>
           </div>
+          {!user && (
+            <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-lg p-4 max-w-md mx-auto">
+              <p className="text-blue-100 text-sm flex items-center justify-center gap-2">
+                <Lock className="w-4 h-4" />
+                Sign in to access project details and source code
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -166,19 +266,25 @@ const Home = () => {
               {
                 label: "Projects Completed",
                 value: stats.projects,
-                color: "blue",
+                color: "text-blue-600",
               },
-              { label: "Blog Articles", value: stats.blogs, color: "purple" },
-              { label: "Active Users", value: stats.users, color: "green" },
+              {
+                label: "Blog Articles",
+                value: stats.blogs,
+                color: "text-purple-600",
+              },
+              {
+                label: "Active Users",
+                value: stats.users,
+                color: "text-green-600",
+              },
             ].map((item, idx) => (
               <div
                 key={idx}
                 className="p-8 bg-white/80 backdrop-blur-md rounded-2xl shadow-md hover:shadow-xl transition-all border border-gray-100"
               >
-                <div
-                  className={`text-5xl font-extrabold text-${item.color}-600 mb-3`}
-                >
-                  {item.value || 0}+
+                <div className={`text-5xl font-extrabold ${item.color} mb-3`}>
+                  {item.value}+
                 </div>
                 <p className="text-gray-600 font-medium tracking-wide">
                   {item.label}
@@ -253,6 +359,14 @@ const Home = () => {
             <p className="text-gray-600 max-w-2xl mx-auto">
               Explore our curated collection of high-quality digital works.
             </p>
+            {!user && (
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-yellow-800 text-sm flex items-center justify-center gap-2">
+                  <Lock className="w-4 h-4" />
+                  Sign in to view project details and source code
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-10">
@@ -260,35 +374,61 @@ const Home = () => {
               featuredProjects.map((project) => (
                 <div
                   key={project._id}
-                  className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300"
+                  className={`bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 ${
+                    !user ? "opacity-90 border-2 border-gray-300" : ""
+                  }`}
                 >
                   <div className="h-56 bg-gray-200 relative group">
                     <img
                       src={getImageUrl(project.images?.[0])}
                       alt={project.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        e.target.src = "/default-project.jpg";
+                      }}
                     />
                     <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                      ${project.price}
+                      ${project.price || "Free"}
                     </div>
+
+                    {/* Lock overlay for non-logged in users */}
+                    {!user && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <div className="bg-white/90 backdrop-blur-sm rounded-full p-3">
+                          <Lock className="w-6 h-6 text-gray-700" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="p-6">
                     <h3 className="text-2xl font-semibold text-gray-900 mb-2">
                       {project.title}
                     </h3>
                     <p className="text-gray-600 mb-4 line-clamp-2">
-                      {project.description}
+                      {project.description ||
+                        project.shortDescription ||
+                        "No description available"}
                     </p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-500 capitalize">
-                        {project.category}
+                        {project.category || "Uncategorized"}
                       </span>
-                      <Link
-                        to={`/projects/${project._id}`}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        View Details
-                      </Link>
+                      {user ? (
+                        <Link
+                          to={`/projects/${project._id}`}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          View Details
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => handleViewDetails(project._id)}
+                          className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                        >
+                          <Lock className="w-4 h-4" />
+                          Sign In
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -379,6 +519,9 @@ const Home = () => {
                         src={testimonial.avatar}
                         alt={testimonial.name}
                         className="w-full h-full rounded-full object-cover"
+                        onError={(e) => {
+                          e.target.src = "/default-avatar.jpg";
+                        }}
                       />
                     ) : (
                       testimonial.name.charAt(0)
@@ -423,21 +566,31 @@ const Home = () => {
                       src={getImageUrl(blog.coverImage)}
                       alt={blog.title}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        e.target.src = "/default-blog.jpg";
+                      }}
                     />
                   </div>
                   <div className="p-6">
                     <div className="flex items-center text-sm text-gray-500 mb-2">
                       <span>
-                        {new Date(blog.createdAt).toLocaleDateString()}
+                        {new Date(
+                          blog.createdAt || blog.date || Date.now()
+                        ).toLocaleDateString()}
                       </span>
                       <span className="mx-2">•</span>
-                      <span className="capitalize">{blog.category}</span>
+                      <span className="capitalize">
+                        {blog.category || "General"}
+                      </span>
                     </div>
                     <h3 className="text-xl font-semibold text-gray-900 mb-3">
                       {blog.title}
                     </h3>
                     <p className="text-gray-600 mb-4 line-clamp-3">
-                      {blog.excerpt || blog.content?.substring(0, 150) + "..."}
+                      {blog.excerpt ||
+                        blog.content?.substring(0, 150) ||
+                        "No content available"}
+                      ...
                     </p>
                     <Link
                       to={`/blogs/${blog._id}`}
@@ -487,6 +640,7 @@ const Home = () => {
 
       {/* Newsletter Section */}
       <NewsletterSubscription />
+
       {/* CTA Section */}
       <section className="bg-gradient-to-r from-gray-900 to-blue-900 text-white py-20">
         <div className="container mx-auto px-4 text-center">

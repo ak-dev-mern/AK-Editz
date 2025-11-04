@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   Eye,
   CheckCircle2,
+  Lock,
 } from "lucide-react";
 
 const ProjectDetail = () => {
@@ -43,10 +44,48 @@ const ProjectDetail = () => {
     queryFn: () => apiService.projects.getById(id),
   });
 
+  // ✅ Check if user has purchased this project
+  const { data: purchasedProjectsData } = useQuery({
+    queryKey: ["purchased-projects", user?._id],
+    queryFn: () => apiService.payments.getPurchasedProjects(),
+    enabled: !!user,
+  });
+
   const project = projectData?.project || projectData;
 
+  // ✅ Fix: Handle different response structures for purchased projects
+  const getPurchasedProjects = () => {
+    if (!purchasedProjectsData) return [];
+
+    // Handle different response structures
+    if (Array.isArray(purchasedProjectsData)) {
+      return purchasedProjectsData;
+    } else if (purchasedProjectsData?.projects) {
+      return purchasedProjectsData.projects;
+    } else if (purchasedProjectsData?.data?.projects) {
+      return purchasedProjectsData.data.projects;
+    } else if (
+      purchasedProjectsData?.data &&
+      Array.isArray(purchasedProjectsData.data)
+    ) {
+      return purchasedProjectsData.data;
+    }
+
+    return [];
+  };
+
+  const purchasedProjects = getPurchasedProjects();
+
+  // ✅ Check if current project is purchased by user
+  const isPurchased = purchasedProjects.some(
+    (p) => p._id === id || p.projectId === id || p.project?._id === id
+  );
+
   const handlePurchase = () => {
-    if (!user) return navigate("/login");
+    if (!user) {
+      navigate("/login", { state: { from: `/projects/${id}` } });
+      return;
+    }
     navigate(`/checkout/${id}`);
   };
 
@@ -137,6 +176,11 @@ const ProjectDetail = () => {
                 <span className="bg-primary-100 text-primary-800 text-xs px-3 py-1 rounded-full uppercase font-semibold tracking-wide">
                   {project.category}
                 </span>
+                {isPurchased && (
+                  <span className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-semibold">
+                    Purchased ✓
+                  </span>
+                )}
               </div>
               <h1 className="text-4xl font-bold text-gray-900 mb-3 leading-tight">
                 {project.title}
@@ -200,32 +244,64 @@ const ProjectDetail = () => {
 
               {/* External Links */}
               <div className="space-y-3 mb-8">
-                {project.sourceCode && (
-                  <a
-                    href={project.sourceCode}
-                    target="_blank"
-                    className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium"
-                  >
-                    <Code2 size={20} /> Source Code
-                  </a>
-                )}
+                {/* Demo URL - Always visible */}
                 {project.demoUrl && (
                   <a
                     href={project.demoUrl}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium"
                   >
                     <ExternalLink size={20} /> Live Demo
                   </a>
                 )}
+
+                {/* Source Code - Only for purchased projects */}
+                {project.sourceCode && (
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-gray-600 font-medium">
+                      <Code2 size={20} /> Source Code
+                    </span>
+                    {isPurchased ? (
+                      <a
+                        href={project.sourceCode}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-600 hover:text-green-700 font-medium text-sm bg-green-50 px-3 py-1 rounded-lg"
+                      >
+                        Access Source
+                      </a>
+                    ) : (
+                      <div className="flex items-center gap-2 text-gray-400 text-sm">
+                        <Lock size={16} />
+                        Purchase to unlock
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Documentation - Only for purchased projects */}
                 {project.documentation && (
-                  <a
-                    href={project.documentation}
-                    target="_blank"
-                    className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium"
-                  >
-                    <FileText size={20} /> Documentation
-                  </a>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-gray-600 font-medium">
+                      <FileText size={20} /> Documentation
+                    </span>
+                    {isPurchased ? (
+                      <a
+                        href={project.documentation}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-600 hover:text-green-700 font-medium text-sm bg-green-50 px-3 py-1 rounded-lg"
+                      >
+                        View Docs
+                      </a>
+                    ) : (
+                      <div className="flex items-center gap-2 text-gray-400 text-sm">
+                        <Lock size={16} />
+                        Purchase to unlock
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -251,30 +327,53 @@ const ProjectDetail = () => {
 
               {/* Purchase Section */}
               <div className="border-t pt-6">
-                <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <span className="text-4xl font-bold text-primary-600">
-                      ₹{project.price}
-                    </span>
-                    {project.originalPrice && (
-                      <span className="ml-3 text-lg text-gray-500 line-through">
-                        ₹{project.originalPrice}
-                      </span>
-                    )}
+                {isPurchased ? (
+                  <div className="text-center">
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-4">
+                      <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                      <h3 className="text-xl font-semibold text-green-800 mb-2">
+                        Project Purchased!
+                      </h3>
+                      <p className="text-green-600 mb-4">
+                        You now have full access to this project including
+                        source code and documentation.
+                      </p>
+                      <Link
+                        to="/dashboard"
+                        className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                      >
+                        Go to Dashboard
+                      </Link>
+                    </div>
                   </div>
-                  <button
-                    onClick={handlePurchase}
-                    disabled={!project.isActive}
-                    className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold hover:shadow-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  >
-                    {project.isActive ? "Purchase Now" : "Unavailable"}
-                  </button>
-                </div>
-                <p className="text-center text-sm text-gray-500">
-                  {project.isActive
-                    ? "Instant download • Lifetime updates • Technical support"
-                    : "Currently unavailable for purchase"}
-                </p>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <span className="text-4xl font-bold text-primary-600">
+                          ₹{project.price}
+                        </span>
+                        {project.originalPrice && (
+                          <span className="ml-3 text-lg text-gray-500 line-through">
+                            ₹{project.originalPrice}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={handlePurchase}
+                        disabled={!project.isActive}
+                        className="px-8 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold hover:shadow-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      >
+                        {project.isActive ? "Purchase Now" : "Unavailable"}
+                      </button>
+                    </div>
+                    <p className="text-center text-sm text-gray-500">
+                      {project.isActive
+                        ? "Instant download • Lifetime updates • Technical support"
+                        : "Currently unavailable for purchase"}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>

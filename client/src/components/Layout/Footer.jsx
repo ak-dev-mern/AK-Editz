@@ -139,7 +139,7 @@ const Footer = () => {
                 />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Akeditz
+                AK Editz
               </span>
             </Link>
             <p className="text-gray-300 mb-6 max-w-md text-lg leading-relaxed">

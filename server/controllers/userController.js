@@ -145,3 +145,13 @@ export const getUserStats = async (req, res) => {
     });
   }
 };
+
+export const getUserCount = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    res.json({ success: true, totalUsers });
+  } catch (error) {
+    console.error("Get user count error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

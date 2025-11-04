@@ -1,15 +1,18 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiService } from "../../utils/api";
+import { useAuth } from "../../contexts/AuthContext";
 import Loader from "../../components/UI/Loader";
 import SearchBar from "../../components/Common/SearchBar";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Lock } from "lucide-react";
 
 const Projects = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const {
     data: projectsData,
@@ -37,6 +40,25 @@ const Projects = () => {
     return imagePath.startsWith("/uploads/")
       ? `${baseUrl}${imagePath}`
       : `${baseUrl}/uploads/${imagePath}`;
+  };
+
+  const handleViewDetails = (projectId) => {
+    if (!user) {
+      // Redirect to login with return URL
+      navigate("/login", { state: { from: `/projects/${projectId}` } });
+      return;
+    }
+    // If user is logged in, navigate to project details
+    navigate(`/projects/${projectId}`);
+  };
+
+  const handlePurchaseAccess = () => {
+    if (!user) {
+      navigate("/login", { state: { from: window.location.pathname } });
+      return;
+    }
+    // Show upgrade/purchase modal or navigate to pricing page
+    alert("Please upgrade your account to access premium projects");
   };
 
   if (isLoading)
@@ -92,6 +114,14 @@ const Projects = () => {
             Explore innovative projects crafted with modern technologies and
             creative excellence.
           </p>
+          {!user && (
+            <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
+              <p className="text-yellow-800 text-sm flex items-center justify-center gap-2">
+                <Lock className="w-4 h-4" />
+                Sign in to view project details and source code
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Search & Filter */}
@@ -141,7 +171,11 @@ const Projects = () => {
             <motion.div
               key={project._id}
               whileHover={{ scale: 1.03 }}
-              className="group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border border-slate-200 hover:shadow-2xl transition-all"
+              className={`group bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg overflow-hidden border transition-all ${
+                !user
+                  ? "border-slate-300 opacity-90"
+                  : "border-slate-200 hover:shadow-2xl"
+              }`}
             >
               <div className="relative h-56 overflow-hidden">
                 {project.images?.[0] ? (
@@ -156,6 +190,15 @@ const Projects = () => {
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                {/* Lock overlay for non-logged in users */}
+                {!user && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <div className="bg-white/90 backdrop-blur-sm rounded-full p-3">
+                      <Lock className="w-6 h-6 text-gray-700" />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-6">
@@ -210,12 +253,35 @@ const Projects = () => {
                   )}
                 </div>
 
-                <Link
-                  to={`/projects/${project._id}`}
-                  className="block w-full text-center py-3 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
-                >
-                  View Details
-                </Link>
+                {/* Conditional Button based on authentication */}
+                {user ? (
+                  <Link
+                    to={`/projects/${project._id}`}
+                    className="block w-full text-center py-3 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-300"
+                  >
+                    View Details
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handleViewDetails(project._id)}
+                    className="w-full text-center py-3 rounded-lg bg-gradient-to-r from-gray-600 to-gray-700 text-white font-medium hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    <Lock className="w-4 h-4" />
+                    Sign In to View
+                  </button>
+                )}
+
+                {/* Premium project indicator */}
+                {project.isPremium && (
+                  <div className="mt-3 text-center">
+                    <button
+                      onClick={handlePurchaseAccess}
+                      className="w-full text-center py-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-300"
+                    >
+                      🔒 Premium - Purchase Access
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}
@@ -227,7 +293,7 @@ const Projects = () => {
             <img
               src="/empty-state-project.png"
               alt="No Projects"
-              className=" mx-auto mb-6 opacity-80"
+              className="mx-auto mb-6 opacity-80"
               style={{ width: "500px" }}
             />
             <p className="text-gray-400 text-sm">
@@ -236,6 +302,38 @@ const Projects = () => {
                 : "There are no projects available right now."}
             </p>
           </div>
+        )}
+
+        {/* Call to Action for non-logged in users */}
+        {!user && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-12 text-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8 border border-blue-200"
+          >
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              Ready to Explore Project Details?
+            </h3>
+            <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+              Sign in to access complete project details, source code,
+              documentation, and technical specifications for all our amazing
+              projects.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/login"
+                className="bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-all"
+              >
+                Sign In Now
+              </Link>
+              <Link
+                to="/register"
+                className="border-2 border-blue-600 text-blue-600 px-8 py-3 rounded-xl font-semibold hover:bg-blue-600 hover:text-white transition-all"
+              >
+                Create Account
+              </Link>
+            </div>
+          </motion.div>
         )}
       </div>
     </div>
