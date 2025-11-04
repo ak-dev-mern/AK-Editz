@@ -351,11 +351,11 @@ const ProjectDetail = () => {
                     <div className="flex justify-between items-center mb-4">
                       <div>
                         <span className="text-4xl font-bold text-primary-600">
-                          ₹{project.price}
+                          ${project.price}
                         </span>
                         {project.originalPrice && (
                           <span className="ml-3 text-lg text-gray-500 line-through">
-                            ₹{project.originalPrice}
+                            ${project.originalPrice}
                           </span>
                         )}
                       </div>

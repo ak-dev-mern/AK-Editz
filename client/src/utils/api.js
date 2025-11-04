@@ -114,16 +114,6 @@ export const apiService = {
       api.get(`/auth/validate-reset-token/${token}`),
   },
 
-  // Users API (Admin only)
-  users: {
-    getAll: () => api.get("/users"),
-    getById: (id) => api.get(`/users/${id}`),
-    update: (id, userData) => api.put(`/users/${id}`, userData),
-    delete: (id) => api.delete(`/users/${id}`),
-    getStats: () => api.get("/users/stats"),
-    getUserCount: () => api.get("/users/count"),
-  },
-
   // Projects API
   projects: {
     getAll: (params = {}) => api.get("/projects", { params }),
@@ -144,6 +134,42 @@ export const apiService = {
     getStats: () => api.get("/projects/admin/stats"),
   },
 
+  // Users API (Admin only)
+  users: {
+    getAll: () => api.get("/users"),
+    getById: (id) => api.get(`/users/${id}`),
+    update: (id, userData) => api.put(`/users/${id}`, userData),
+    delete: (id) => api.delete(`/users/${id}`),
+    getStats: () => api.get("/users/stats"),
+    getUserCount: () => api.get("/users/count"),
+  },
+
+  // Payment API (Stripe)
+  payments: {
+    createPaymentIntent: (paymentData) =>
+      api.post("/payments/create-payment-intent", paymentData),
+
+    confirmPayment: (confirmationData) =>
+      api.post("/payments/confirm", confirmationData),
+
+    getPurchasedProjects: () => api.get("/payments/purchased-projects"),
+
+    getUserPayments: (params = {}) =>
+      api.get("/payments/user/history", { params }),
+
+    getById: (id) => api.get(`/payments/${id}`),
+
+    downloadInvoice: (id) => api.get(`/payments/${id}/invoice`),
+
+    admin: {
+      getAll: (params = {}) => api.get("/payments/admin/all", { params }),
+
+      getStats: (params = {}) => api.get("/payments/admin/stats", { params }),
+
+      refund: (id) => api.post(`/payments/admin/${id}/refund`),
+    },
+  },
+
   // Blog API
   blogs: {
     getAll: (params = {}) => api.get("/blogs", { params }),
@@ -160,20 +186,7 @@ export const apiService = {
     togglePublish: (id) => api.patch(`/blogs/${id}/toggle-publish`),
   },
 
-  // Payments API
-  payments: {
-    createOrder: (orderData) => api.post("/payments/create-order", orderData),
-    verifyPayment: (paymentData) => api.post("/payments/verify", paymentData),
-    getPurchasedProjects: () => api.get("/payments/my-projects"),
-    getUserPayments: () => api.get("/payments/user-payments"),
-    getPaymentById: (id) => api.get(`/payments/${id}`),
-    downloadInvoice: (id) =>
-      api.get(`/payments/invoice/${id}`, { responseType: "blob" }),
-    getAll: () => api.get("/payments/admin/all"),
-    getStats: () => api.get("/payments/admin/stats/overview"),
-    refundPayment: (id) => api.post(`/payments/admin/refund/${id}`),
-  },
-
+  // Newsletter API
   newsletter: {
     subscribe: (email, name, source = "website") =>
       api.post("/newsletter/subscribe", { email, name, source }),

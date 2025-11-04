@@ -1,19 +1,28 @@
-import Razorpay from "razorpay";
+import Stripe from "stripe";
 import Payment from "../models/Payment.js";
 import Project from "../models/Project.js";
 import User from "../models/User.js";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_1DP5mmOlF5G5ag",
-  key_secret:
-    process.env.RAZORPAY_KEY_SECRET || "rzp_test_AbCdEfGhIjKlMnOpQrStUvWxYz",
-});
+const stripe = new Stripe(
+  process.env.STRIPE_SECRET_KEY ||
+    "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"
+);
 
-// Create order
-export const createOrder = async (req, res) => {
+export const createPaymentIntent = async (req, res) => {
   try {
-    const { projectId } = req.body;
+    console.log("Creating payment intent with data:", req.body);
+    console.log("Authenticated user:", req.user._id);
 
+    const { projectId, amount, currency = "usd" } = req.body;
+
+    if (!projectId || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: "Project ID and amount required",
+      });
+    }
+
+    // Validate project exists and is active
     const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({
@@ -22,73 +31,157 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // Check if user already purchased this project
-    const user = await User.findById(req.user._id);
-    if (user.purchasedProjects.includes(projectId)) {
+    if (!project.isActive) {
       return res.status(400).json({
         success: false,
-        message: "You have already purchased this project",
+        message: "Project is not available for purchase",
       });
     }
 
-    const options = {
-      amount: project.price * 100, // amount in paise
-      currency: "INR",
-      receipt: `receipt_${Date.now()}`,
-    };
+    // Convert amount to cents (Stripe uses smallest currency unit)
+    const amountInCents = Math.round(amount * 100);
 
-    const order = await razorpay.orders.create(options);
+    // Validate amount
+    if (amountInCents < 50) {
+      return res.status(400).json({
+        success: false,
+        message: "Amount must be at least $0.50",
+      });
+    }
 
-    // Save payment record
-    const payment = new Payment({
-      orderId: order.id,
-      amount: project.price,
-      user: req.user._id,
-      project: projectId,
+    console.log("Creating Stripe payment intent with:", {
+      amount: amountInCents,
+      currency,
+      projectId,
+      userId: req.user._id,
     });
 
-    await payment.save();
+    // Check for existing active payment intent for this user and project
+    const existingPayment = await Payment.findOne({
+      user: req.user._id,
+      project: projectId,
+      status: { $in: ["created", "processing"] },
+    });
+
+    if (existingPayment && existingPayment.clientSecret) {
+      console.log("Using existing payment session:", existingPayment._id);
+      return res.json({
+        success: true,
+        clientSecret: existingPayment.clientSecret,
+        paymentIntentId: existingPayment.paymentIntentId,
+        message: "Using existing payment session",
+      });
+    }
+
+    // Create Stripe payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: currency.toLowerCase(),
+      metadata: {
+        projectId: projectId.toString(),
+        userId: req.user._id.toString(),
+        projectTitle: project.title,
+      },
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+
+    console.log("Stripe payment intent created:", paymentIntent.id);
+
+    // FIX: Remove orderId field or generate a unique orderId
+    const paymentData = {
+      paymentIntentId: paymentIntent.id,
+      amount: amount, // Store the original amount (in dollars)
+      currency: currency,
+      user: req.user._id,
+      project: projectId,
+      status: "created",
+      clientSecret: paymentIntent.client_secret,
+      metadata: {
+        stripeAmount: amountInCents, // Store the Stripe amount in cents
+        projectTitle: project.title,
+      },
+    };
+
+    // Only add orderId if you have a proper unique value
+    // paymentData.orderId = generateUniqueOrderId(); // Uncomment if you need orderId
+
+    const payment = await Payment.create(paymentData);
+
+    console.log("Payment record created:", payment._id);
 
     res.json({
       success: true,
-      orderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      project: {
-        id: project._id,
-        title: project.title,
-        price: project.price,
-      },
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+      amount: paymentIntent.amount, // Returns amount in cents
+      currency: paymentIntent.currency,
     });
-  } catch (error) {
-    console.error("Create order error:", error);
+  } catch (err) {
+    console.error("Payment intent creation error:", err);
+
+    let errorMessage = "Failed to create payment intent";
+
+    if (err.code === 11000) {
+      // Handle duplicate key error
+      if (err.keyPattern && err.keyPattern.orderId) {
+        errorMessage = "Payment session conflict. Please try again.";
+
+        // Try to find and return existing payment
+        try {
+          const existingPayment = await Payment.findOne({
+            user: req.user._id,
+            project: projectId,
+            status: { $in: ["created", "processing"] },
+          });
+
+          if (existingPayment && existingPayment.clientSecret) {
+            return res.json({
+              success: true,
+              clientSecret: existingPayment.clientSecret,
+              paymentIntentId: existingPayment.paymentIntentId,
+              message: "Using existing payment session",
+            });
+          }
+        } catch (findError) {
+          console.error("Error finding existing payment:", findError);
+        }
+      }
+    } else if (err.type === "StripeInvalidRequestError") {
+      errorMessage = "Invalid payment request";
+    } else if (err.type === "StripeAuthenticationError") {
+      errorMessage = "Payment service configuration error";
+    } else if (err.type === "StripeConnectionError") {
+      errorMessage = "Network error with payment service";
+    }
+
     res.status(500).json({
       success: false,
-      message: "Server error while creating order",
+      message: errorMessage,
+      error: err.message,
     });
   }
 };
-
-// Verify payment
-export const verifyPayment = async (req, res) => {
+// In your confirmPayment function or webhook handler
+export const confirmPayment = async (req, res) => {
   try {
-    const { orderId, paymentId, signature } = req.body;
+    const { paymentIntentId } = req.body;
 
-    // In production, you should verify the signature
-    // const crypto = await import('crypto');
-    // const expectedSignature = crypto
-    //   .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-    //   .update(orderId + "|" + paymentId)
-    //   .digest('hex');
-    //
-    // if (expectedSignature !== signature) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "Payment verification failed"
-    //   });
-    // }
+    if (!paymentIntentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment Intent ID required",
+      });
+    }
 
-    const payment = await Payment.findOne({ orderId });
+    console.log("Confirming payment:", paymentIntentId);
+
+    // Retrieve payment intent from Stripe to verify status
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    // Find and update payment record
+    const payment = await Payment.findOne({ paymentIntentId });
     if (!payment) {
       return res.status(404).json({
         success: false,
@@ -96,64 +189,252 @@ export const verifyPayment = async (req, res) => {
       });
     }
 
-    // Check if payment is already verified
-    if (payment.status === "paid") {
-      return res.status(400).json({
-        success: false,
-        message: "Payment already verified",
+    console.log("Payment found:", {
+      paymentId: payment._id,
+      currentStatus: payment.status,
+      stripeStatus: paymentIntent.status,
+    });
+
+    // Update payment status based on Stripe status
+    if (
+      paymentIntent.status === "succeeded" &&
+      payment.status !== "succeeded"
+    ) {
+      payment.status = "succeeded";
+      payment.paymentMethod = paymentIntent.payment_method;
+      await payment.save();
+
+      console.log("✅ Payment status updated to succeeded");
+
+      // Add project to user's purchased projects
+      await User.findByIdAndUpdate(payment.user, {
+        $addToSet: { purchasedProjects: payment.project },
       });
+
+      console.log("✅ Project added to user's purchased projects");
     }
 
-    payment.paymentId = paymentId;
-    payment.signature = signature;
-    payment.status = "paid";
-    await payment.save();
-
-    // Add project to user's purchased projects
-    await User.findByIdAndUpdate(req.user._id, {
-      $addToSet: { purchasedProjects: payment.project },
-    });
-
-    // Populate project details for response
-    await payment.populate("project", "title description sourceCode");
-
     res.json({
-      success: true,
-      message: "Payment verified successfully",
-      payment: {
-        id: payment._id,
-        amount: payment.amount,
-        status: payment.status,
-        project: payment.project,
-      },
+      success: paymentIntent.status === "succeeded",
+      status: payment.status,
+      message:
+        paymentIntent.status === "succeeded"
+          ? "Payment successful"
+          : `Payment ${payment.status}`,
     });
-  } catch (error) {
-    console.error("Payment verification error:", error);
+  } catch (err) {
+    console.error("Payment confirmation error:", err);
     res.status(500).json({
       success: false,
-      message: "Server error while verifying payment",
+      message: "Payment confirmation failed",
+      error: err.message,
     });
+  }
+};
+// Webhook handler for Stripe events
+export const handleWebhook = async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  let event;
+
+  console.log("🔔 Webhook received - Headers:", {
+    signature: sig ? "Present" : "Missing",
+    contentType: req.headers["content-type"],
+    userAgent: req.headers["user-agent"],
+  });
+
+  console.log("🔔 Webhook raw body:", req.body);
+
+  try {
+    // Verify webhook signature
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+    console.log("✅ Webhook signature verified");
+  } catch (err) {
+    console.error(`❌ Webhook signature verification failed:`, err.message);
+    console.log(
+      "❌ STRIPE_WEBHOOK_SECRET exists:",
+      !!process.env.STRIPE_WEBHOOK_SECRET
+    );
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
+    console.log("🔔 Webhook event type:", event.type);
+    console.log("🔔 Webhook event ID:", event.id);
+    console.log("🔔 Payment Intent ID:", event.data.object.id);
+
+    // Handle the event
+    switch (event.type) {
+      case "payment_intent.succeeded":
+        console.log("🎉 PAYMENT_INTENT.SUCCEEDED event received");
+        const paymentIntentSucceeded = event.data.object;
+        await handlePaymentIntentSucceeded(paymentIntentSucceeded);
+        break;
+      case "payment_intent.payment_failed":
+        console.log("💥 PAYMENT_INTENT.PAYMENT_FAILED event received");
+        const paymentIntentFailed = event.data.object;
+        await handlePaymentIntentFailed(paymentIntentFailed);
+        break;
+      default:
+        console.log(`⚡ Unhandled event type: ${event.type}`);
+    }
+
+    console.log("✅ Webhook processed successfully");
+    res.json({ received: true });
+  } catch (error) {
+    console.error("❌ Webhook handler error:", error);
+    console.error("❌ Error stack:", error.stack);
+    res.status(500).json({ error: "Webhook handler failed" });
+  }
+};
+
+// Helper function for successful payment - WITH COMPREHENSIVE LOGGING
+const handlePaymentIntentSucceeded = async (paymentIntent) => {
+  try {
+    console.log("💰 handlePaymentIntentSucceeded started");
+    console.log("💰 Payment Intent ID:", paymentIntent.id);
+    console.log("💰 Payment Intent Status:", paymentIntent.status);
+    console.log("💰 Amount:", paymentIntent.amount);
+    console.log("💰 Metadata:", paymentIntent.metadata);
+
+    // Find payment record
+    const payment = await Payment.findOne({
+      paymentIntentId: paymentIntent.id,
+    });
+
+    if (!payment) {
+      console.log("❌ Payment record not found for paymentIntentId:", paymentIntent.id);
+      
+      // Try to find by other criteria
+      const allPayments = await Payment.find({});
+      console.log("🔍 All payments in DB:", allPayments.map(p => ({
+        _id: p._id,
+        paymentIntentId: p.paymentIntentId,
+        status: p.status
+      })));
+      return;
+    }
+
+    console.log("✅ Payment record found:", {
+      paymentId: payment._id,
+      currentStatus: payment.status,
+      userId: payment.user,
+      projectId: payment.project
+    });
+
+    // Update payment status
+    console.log("🔄 Updating payment status from", payment.status, "to succeeded");
+    payment.status = "succeeded";
+    payment.paymentMethod = paymentIntent.payment_method;
+    await payment.save();
+    console.log("✅ Payment status updated to succeeded");
+
+    // Add project to user's purchased projects
+    console.log("🔄 Adding project to user's purchased projects");
+    const userUpdate = await User.findByIdAndUpdate(
+      payment.user,
+      {
+        $addToSet: { purchasedProjects: payment.project }
+      },
+      { new: true }
+    ).populate('purchasedProjects', 'title _id');
+
+    console.log("✅ User profile updated successfully");
+    console.log("📊 User now has", userUpdate.purchasedProjects.length, "purchased projects");
+    console.log("📊 Purchased projects:", userUpdate.purchasedProjects.map(p => p.title));
+
+    // Verify the project exists
+    const project = await Project.findById(payment.project);
+    if (!project) {
+      console.log("❌ Project not found:", payment.project);
+    } else {
+      console.log("✅ Project found:", project.title);
+    }
+
+    console.log("🎉 handlePaymentIntentSucceeded completed successfully");
+
+  } catch (error) {
+    console.error("❌ Error in handlePaymentIntentSucceeded:", error);
+    console.error("❌ Error stack:", error.stack);
+    throw error; // Re-throw to be caught by webhook handler
+  }
+};
+
+// Helper function for failed payment
+const handlePaymentIntentFailed = async (paymentIntent) => {
+  try {
+    console.log("💥 handlePaymentIntentFailed started");
+    console.log("💥 Payment Intent ID:", paymentIntent.id);
+    console.log("💥 Last error:", paymentIntent.last_payment_error);
+
+    const payment = await Payment.findOne({
+      paymentIntentId: paymentIntent.id,
+    });
+
+    if (payment && payment.status !== "failed") {
+      console.log("🔄 Updating payment status to failed");
+      payment.status = "failed";
+      payment.lastPaymentError = paymentIntent.last_payment_error;
+      await payment.save();
+      console.log("✅ Payment status updated to failed");
+    } else {
+      console.log("ℹ️ Payment not found or already failed");
+    }
+
+  } catch (error) {
+    console.error("❌ Error in handlePaymentIntentFailed:", error);
   }
 };
 
 // Get user's purchased projects
 export const getPurchasedProjects = async (req, res) => {
   try {
+    console.log("🔍 [getPurchasedProjects] Starting for user:", req.user._id);
+
+    // Find user with populated purchased projects
     const user = await User.findById(req.user._id).populate({
       path: "purchasedProjects",
       select:
-        "title description price category technologies images demoUrl documentation",
+        "title description shortDescription price category technologies images demoUrl documentation createdAt",
     });
+
+    if (!user) {
+      console.log("❌ [getPurchasedProjects] User not found:", req.user._id);
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    console.log(
+      `✅ [getPurchasedProjects] Found ${
+        user.purchasedProjects?.length || 0
+      } projects for user ${user.email}`
+    );
+
+    // Log project details for debugging
+    if (user.purchasedProjects && user.purchasedProjects.length > 0) {
+      user.purchasedProjects.forEach((project) => {
+        console.log(`   📁 Project: ${project.title} (${project._id})`);
+      });
+    } else {
+      console.log("   ℹ️ No purchased projects found for user");
+    }
 
     res.json({
       success: true,
-      projects: user.purchasedProjects,
+      projects: user.purchasedProjects || [],
+      count: user.purchasedProjects?.length || 0,
     });
   } catch (error) {
-    console.error("Get purchased projects error:", error);
+    console.error("❌ [getPurchasedProjects] Error:", error);
     res.status(500).json({
       success: false,
       message: "Server error while fetching purchased projects",
+      error: error.message,
     });
   }
 };
@@ -270,7 +551,7 @@ export const getPaymentById = async (req, res) => {
 // Get payment statistics (admin only)
 export const getPaymentStats = async (req, res) => {
   try {
-    const { period = "month" } = req.query; // day, week, month, year
+    const { period = "month" } = req.query;
 
     let dateFilter = {};
     const now = new Date();
@@ -289,104 +570,130 @@ export const getPaymentStats = async (req, res) => {
         dateFilter = { $gte: weekStart };
         break;
       case "month":
-        dateFilter = {
-          $gte: new Date(now.getFullYear(), now.getMonth(), 1),
-        };
+        dateFilter = { $gte: new Date(now.getFullYear(), now.getMonth(), 1) };
         break;
       case "year":
-        dateFilter = {
-          $gte: new Date(now.getFullYear(), 0, 1),
-        };
+        dateFilter = { $gte: new Date(now.getFullYear(), 0, 1) };
         break;
     }
 
-    const totalRevenue = await Payment.aggregate([
+    const stats = await Payment.aggregate([
       {
         $match: {
-          status: "paid",
-          ...(Object.keys(dateFilter).length && { createdAt: dateFilter }),
-        },
-      },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-
-    const totalPayments = await Payment.countDocuments({
-      status: "paid",
-      ...(Object.keys(dateFilter).length && { createdAt: dateFilter }),
-    });
-
-    const successfulPayments = await Payment.countDocuments({
-      status: "paid",
-      ...(Object.keys(dateFilter).length && { createdAt: dateFilter }),
-    });
-
-    const failedPayments = await Payment.countDocuments({
-      status: "failed",
-      ...(Object.keys(dateFilter).length && { createdAt: dateFilter }),
-    });
-
-    const revenueByCategory = await Payment.aggregate([
-      {
-        $match: {
-          status: "paid",
           ...(Object.keys(dateFilter).length && { createdAt: dateFilter }),
         },
       },
       {
-        $lookup: {
-          from: "projects",
-          localField: "project",
-          foreignField: "_id",
-          as: "project",
-        },
-      },
-      { $unwind: "$project" },
-      {
-        $group: {
-          _id: "$project.category",
-          total: { $sum: "$amount" },
-          count: { $sum: 1 },
+        $facet: {
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalPayments: { $sum: 1 },
+                totalRevenue: {
+                  $sum: {
+                    $cond: [
+                      { $in: ["$status", ["paid", "succeeded", "completed"]] },
+                      "$amount",
+                      0,
+                    ],
+                  },
+                },
+                successfulPayments: {
+                  $sum: {
+                    $cond: [
+                      { $in: ["$status", ["paid", "succeeded", "completed"]] },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                failedPayments: {
+                  $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] },
+                },
+                pendingPayments: {
+                  $sum: {
+                    $cond: [
+                      {
+                        $in: [
+                          "$status",
+                          [
+                            "created",
+                            "processing",
+                            "pending",
+                            "requires_action",
+                            "requires_payment_method",
+                          ],
+                        ],
+                      },
+                      1,
+                      0,
+                    ],
+                  },
+                },
+                refundedPayments: {
+                  $sum: { $cond: [{ $eq: ["$status", "refunded"] }, 1, 0] },
+                },
+              },
+            },
+          ],
+          revenueByCategory: [
+            {
+              $match: {
+                status: { $in: ["paid", "succeeded", "completed"] },
+              },
+            },
+            {
+              $lookup: {
+                from: "projects",
+                localField: "project",
+                foreignField: "_id",
+                as: "project",
+              },
+            },
+            { $unwind: "$project" },
+            {
+              $group: {
+                _id: "$project.category",
+                total: { $sum: "$amount" },
+                count: { $sum: 1 },
+              },
+            },
+          ],
         },
       },
     ]);
 
-    const recentPayments = await Payment.find({ status: "paid" })
-      .populate("user", "name")
-      .populate("project", "title category")
-      .sort({ createdAt: -1 })
-      .limit(10);
+    const summary = stats[0]?.summary[0] || {
+      totalPayments: 0,
+      totalRevenue: 0,
+      successfulPayments: 0,
+      failedPayments: 0,
+      pendingPayments: 0,
+      refundedPayments: 0,
+    };
 
-    const monthlyRevenue = await Payment.aggregate([
-      {
-        $match: {
-          status: "paid",
-          createdAt: { $gte: new Date(now.getFullYear(), 0, 1) },
-        },
-      },
-      {
-        $group: {
-          _id: { $month: "$createdAt" },
-          revenue: { $sum: "$amount" },
-          payments: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
+    const successRate =
+      summary.totalPayments > 0
+        ? parseFloat(
+            (
+              (summary.successfulPayments / summary.totalPayments) *
+              100
+            ).toFixed(2)
+          )
+        : 0;
 
     res.json({
       success: true,
       stats: {
-        totalRevenue: totalRevenue[0]?.total || 0,
-        totalPayments,
-        successfulPayments,
-        failedPayments,
-        successRate:
-          totalPayments > 0
-            ? ((successfulPayments / totalPayments) * 100).toFixed(2)
-            : 0,
-        revenueByCategory,
-        recentPayments,
-        monthlyRevenue,
+        totalRevenue: summary.totalRevenue,
+        totalPayments: summary.totalPayments,
+        successfulPayments: summary.successfulPayments,
+        failedPayments: summary.failedPayments,
+        pendingPayments: summary.pendingPayments,
+        refundedPayments: summary.refundedPayments,
+        successRate,
+        revenueByCategory: stats[0]?.revenueByCategory || [],
         period,
       },
     });
@@ -398,7 +705,6 @@ export const getPaymentStats = async (req, res) => {
     });
   }
 };
-
 // Refund payment (admin only)
 export const refundPayment = async (req, res) => {
   try {
@@ -418,13 +724,14 @@ export const refundPayment = async (req, res) => {
       });
     }
 
-    // In production, implement actual Razorpay refund
-    // const refund = await razorpay.payments.refund(payment.paymentId, {
-    //   amount: payment.amount * 100
-    // });
+    // Create Stripe refund
+    const refund = await stripe.refunds.create({
+      payment_intent: payment.paymentIntentId,
+    });
 
-    // For now, just update the status
+    // Update payment status
     payment.status = "refunded";
+    payment.refundId = refund.id;
     await payment.save();
 
     // Remove project from user's purchased projects
@@ -436,6 +743,7 @@ export const refundPayment = async (req, res) => {
       success: true,
       message: "Payment refunded successfully",
       payment,
+      refund,
     });
   } catch (error) {
     console.error("Refund payment error:", error);
@@ -490,7 +798,7 @@ export const downloadInvoice = async (req, res) => {
       subtotal: payment.amount,
       tax: 0,
       total: payment.amount,
-      paymentId: payment.paymentId,
+      paymentIntentId: payment.paymentIntentId,
       status: payment.status,
     };
 

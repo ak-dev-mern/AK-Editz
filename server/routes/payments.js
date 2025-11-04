@@ -1,35 +1,40 @@
 import express from "express";
 import {
-  createOrder,
-  verifyPayment,
+  createPaymentIntent,
+  confirmPayment,
+  handleWebhook,
   getPurchasedProjects,
-  getAllPayments,
   getUserPayments,
   getPaymentById,
+  downloadInvoice,
+  // Admin functions
+  getAllPayments,
   getPaymentStats,
   refundPayment,
-  downloadInvoice,
 } from "../controllers/paymentsController.js";
-import auth from "../middleware/auth.js";
 import adminAuth from "../middleware/adminAuth.js";
+import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Payment processing routes
-router.post("/create-order", auth, createOrder);
-router.post("/verify", auth, verifyPayment);
+// Webhook must come before body parser
+router.post(
+  "/webhook",
+  express.raw({ type: "application/json" }),
+  handleWebhook
+);
 
-// User payment routes
-router.get("/my-projects", auth, getPurchasedProjects);
-router.get("/user-payments", auth, getUserPayments);
-router.get("/invoice/:id", auth, downloadInvoice);
+// User payment routes - PROTECTED (regular users)
+router.post("/create-payment-intent", auth, createPaymentIntent);
+router.post("/confirm", auth, confirmPayment);
+router.get("/purchased-projects", auth, getPurchasedProjects);
+router.get("/user/history", auth, getUserPayments); // Users can see their own payment history
+router.get("/:id", auth, getPaymentById); // Users can see their own payments
+router.get("/:id/invoice", auth, downloadInvoice); // Users can download their own invoices
 
-// Payment access routes
-router.get("/:id", auth, getPaymentById);
-
-// Admin only routes
-router.get("/admin/all", adminAuth, getAllPayments);
-router.get("/admin/stats/overview", adminAuth, getPaymentStats);
-router.post("/admin/refund/:id", adminAuth, refundPayment);
+// Admin payment routes - PROTECTED + ADMIN ONLY
+router.get("/admin/all", auth, adminAuth, getAllPayments); // Both auth AND adminAuth
+router.get("/admin/stats", auth, adminAuth, getPaymentStats); // Both auth AND adminAuth
+router.post("/admin/:id/refund", auth, adminAuth, refundPayment); // Both auth AND adminAuth
 
 export default router;
