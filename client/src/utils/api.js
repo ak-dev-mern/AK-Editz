@@ -161,6 +161,12 @@ export const apiService = {
 
     downloadInvoice: (id) => api.get(`/payments/${id}/invoice`),
 
+    // ADD THESE QR PAYMENT METHODS HERE (NOT UNDER ADMIN):
+    createQRPayment: (data) => api.post("/payments/qr/create", data),
+
+    checkQRPaymentStatus: (paymentId) =>
+      api.get(`/payments/qr/status/${paymentId}`),
+
     admin: {
       getAll: (params = {}) => api.get("/payments/admin/all", { params }),
 

@@ -28,10 +28,261 @@ import {
   Wallet,
   Clock,
   Globe,
+  QrCode,
+  Smartphone,
+  RefreshCw,
 } from "lucide-react";
 
 // Initialize Stripe with your publishable key
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
+// QR Payment Component
+const QRPayment = ({ project, projectId, onBack, onSuccess }) => {
+  const [loading, setLoading] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("created");
+  const [paymentId, setPaymentId] = useState("");
+  const [error, setError] = useState("");
+  const [pollingInterval, setPollingInterval] = useState(null);
+
+  // Initialize QR payment
+  const initializeQRPayment = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await apiService.payments.createQRPayment({
+        projectId,
+        amount: project.price,
+        currency: "usd",
+      });
+
+      if (response.success) {
+        setQrCodeData(response.qrCodeData);
+        setPaymentId(response.paymentId);
+        setPaymentStatus("created");
+
+        // Start polling for payment status
+        startPolling(response.paymentId);
+      } else {
+        setError(response.message || "Failed to create QR payment");
+      }
+    } catch (err) {
+      console.error("QR payment initialization error:", err);
+      setError("Failed to initialize QR payment");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Poll for payment status
+  const startPolling = (paymentId) => {
+    // Clear existing interval
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const statusResponse = await apiService.payments.checkQRPaymentStatus(
+          paymentId
+        );
+
+        if (statusResponse.success) {
+          setPaymentStatus(statusResponse.status);
+
+          if (statusResponse.status === "succeeded") {
+            clearInterval(interval);
+            onSuccess();
+          } else if (statusResponse.status === "failed") {
+            clearInterval(interval);
+            setError("Payment failed. Please try again.");
+          }
+        }
+      } catch (err) {
+        console.error("Status check error:", err);
+      }
+    }, 3000); // Check every 3 seconds
+
+    setPollingInterval(interval);
+  };
+
+  // Stop polling
+  const stopPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+  };
+
+  // Generate QR code image URL
+  const getQRCodeImageUrl = () => {
+    if (!qrCodeData) return "";
+
+    // Use a QR code generation service
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+      qrCodeData
+    )}`;
+  };
+
+  // Initialize on component mount
+  useEffect(() => {
+    initializeQRPayment();
+
+    // Cleanup polling on unmount
+    return () => {
+      stopPolling();
+    };
+  }, []);
+
+  const handleRetry = () => {
+    setError("");
+    initializeQRPayment();
+  };
+
+  const getStatusIcon = () => {
+    switch (paymentStatus) {
+      case "succeeded":
+        return <CheckCircle2 className="w-8 h-8 text-green-500" />;
+      case "failed":
+        return <AlertCircle className="w-8 h-8 text-red-500" />;
+      case "processing":
+        return <Clock className="w-8 h-8 text-blue-500 animate-pulse" />;
+      default:
+        return <Clock className="w-8 h-8 text-yellow-500" />;
+    }
+  };
+
+  const getStatusMessage = () => {
+    switch (paymentStatus) {
+      case "created":
+        return "Scan the QR code to complete payment";
+      case "processing":
+        return "Payment processing...";
+      case "succeeded":
+        return "Payment completed successfully!";
+      case "failed":
+        return "Payment failed";
+      default:
+        return "Waiting for payment...";
+    }
+  };
+
+  return (
+    <div className="max-w-md mx-auto">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          QR Code Payment
+        </h2>
+        <p className="text-gray-600">Scan the QR code with your payment app</p>
+      </div>
+
+      {/* Payment Details */}
+      <div className="bg-gray-50 rounded-2xl p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-gray-600">Project:</span>
+          <span className="font-semibold">{project.title}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-600">Amount:</span>
+          <span className="text-xl font-bold text-primary-600">
+            ${project.price}
+          </span>
+        </div>
+      </div>
+
+      {/* QR Code Display */}
+      <div className="bg-white rounded-2xl p-8 border-2 border-dashed border-gray-300 text-center mb-6">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-600">Generating QR code...</p>
+          </div>
+        ) : qrCodeData ? (
+          <div>
+            <img
+              src={getQRCodeImageUrl()}
+              alt="Payment QR Code"
+              className="w-64 h-64 mx-auto mb-4 border border-gray-200 rounded-lg"
+            />
+            <p className="text-sm text-gray-600">
+              Scan this QR code with your payment app
+            </p>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <QrCode className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">QR code will appear here</p>
+          </div>
+        )}
+      </div>
+
+      {/* Status Display */}
+      <div className="bg-blue-50 rounded-2xl p-6 mb-6">
+        <div className="flex items-center justify-center space-x-3 mb-3">
+          {getStatusIcon()}
+          <span className="font-semibold text-blue-900">
+            {getStatusMessage()}
+          </span>
+        </div>
+
+        {paymentStatus === "created" && (
+          <div className="text-sm text-blue-800 text-center space-y-1">
+            <p>• Open your payment app (Google Pay, PhonePe, PayPal, etc.)</p>
+            <p>• Tap on 'Scan QR Code'</p>
+            <p>• Point your camera at the QR code</p>
+            <p>• Confirm the payment amount</p>
+          </div>
+        )}
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
+          <div className="flex items-center">
+            <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+            <p className="text-red-700">{error}</p>
+          </div>
+          <button
+            onClick={handleRetry}
+            className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex space-x-4">
+        <button
+          onClick={onBack}
+          className="flex-1 border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition duration-200"
+        >
+          Back to Payment Methods
+        </button>
+
+        {paymentStatus !== "succeeded" && (
+          <button
+            onClick={handleRetry}
+            disabled={loading}
+            className="flex-1 bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-700 transition duration-200 disabled:opacity-50"
+          >
+            {loading ? "Refreshing..." : "Refresh QR"}
+          </button>
+        )}
+      </div>
+
+      {/* Help Text */}
+      <div className="mt-6 text-center text-sm text-gray-500">
+        <p>
+          Having trouble? Ensure your payment app supports QR code scanning.
+        </p>
+        <p>Payment will expire in 15 minutes.</p>
+      </div>
+    </div>
+  );
+};
 
 // Stripe Elements wrapper
 const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
@@ -45,6 +296,34 @@ const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
   const [error, setError] = useState("");
   const [email, setEmail] = useState(user?.email || "");
   const [name, setName] = useState(user?.name || "");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("card");
+  const [showQRPayment, setShowQRPayment] = useState(false);
+
+  // If QR payment is selected, show the QR payment component
+  if (showQRPayment) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10">
+        <div className="max-w-2xl mx-auto px-4">
+          <QRPayment
+            project={project}
+            projectId={projectId}
+            onBack={() => setShowQRPayment(false)}
+            onSuccess={() => {
+              onSuccess();
+              setTimeout(() => {
+                navigate("/dashboard", {
+                  state: {
+                    message: "QR payment completed successfully!",
+                    project: project.title,
+                  },
+                });
+              }, 2000);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,11 +342,11 @@ const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
     setError("");
 
     try {
-      // Confirm payment with Stripe Elements
-      const { error: stripeError } = await stripe.confirmPayment({
+      // Standard card payment with mounted Payment Element
+      const result = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/payment-success`,
+          return_url: `${window.location.origin}/payment-success?projectId=${projectId}&paymentMethod=card`,
           payment_method_data: {
             billing_details: {
               name: name,
@@ -78,49 +357,150 @@ const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
         redirect: "if_required",
       });
 
-      if (stripeError) {
-        console.error("Stripe payment error:", stripeError);
-        setError(stripeError.message || "Payment failed. Please try again.");
+      if (result?.error) {
+        console.error("Stripe payment error:", result.error);
+
+        // Handle specific error cases
+        if (result.error.type === "validation_error") {
+          setError("Please check your payment details and try again.");
+        } else if (result.error.type === "card_error") {
+          setError(
+            result.error.message ||
+              "Card payment failed. Please try another card."
+          );
+        } else {
+          setError(result.error.message || "Payment failed. Please try again.");
+        }
+
         setLoading(false);
         return;
       }
 
-      // If we reach here, payment was successful
-      console.log("Payment successful!");
+      // Handle successful card payments
+      if (result.paymentIntent?.status === "succeeded") {
+        const paymentIntentId = clientSecret.split("_secret")[0];
+        const response = await apiService.payments.confirmPayment({
+          paymentIntentId: paymentIntentId,
+          paymentMethodType: "card",
+        });
 
-      // Extract payment intent ID from client secret
-      const paymentIntentId = clientSecret.split("_secret")[0];
-
-      // Call backend to update payment status and user profile
-      const response = await apiService.payments.confirmPayment({
-        paymentIntentId: paymentIntentId,
-      });
-
-      console.log("Backend confirmation response:", response);
-
-      if (response.success) {
-        onSuccess();
-        setTimeout(() => {
-          navigate("/dashboard", {
-            state: {
-              message: "Payment completed successfully!",
-              project: project.title,
-            },
-          });
-        }, 2000);
-      } else {
-        throw new Error(response.message || "Payment backend update failed");
+        if (response.success) {
+          onSuccess();
+          setTimeout(() => {
+            navigate("/dashboard", {
+              state: {
+                message: "Payment completed successfully!",
+                project: project.title,
+              },
+            });
+          }, 2000);
+        } else {
+          throw new Error(response.message || "Payment backend update failed");
+        }
       }
     } catch (err) {
       console.error("Payment processing error:", err);
       setError(err.message || "Payment processing failed");
-    } finally {
       setLoading(false);
     }
   };
 
+  const handlePaymentMethodChange = (method) => {
+    setSelectedPaymentMethod(method);
+    setError("");
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Payment Method Selection */}
+      <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
+        <h4 className="font-semibold text-gray-900 mb-4">Payment Method</h4>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* Credit Card Option */}
+          <button
+            type="button"
+            onClick={() => handlePaymentMethodChange("card")}
+            className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+              selectedPaymentMethod === "card"
+                ? "border-primary-500 bg-primary-50"
+                : "border-gray-300 hover:border-gray-400"
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                  selectedPaymentMethod === "card"
+                    ? "border-primary-500 bg-primary-500"
+                    : "border-gray-400"
+                }`}
+              >
+                {selectedPaymentMethod === "card" && (
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                )}
+              </div>
+              <CreditCard size={20} className="text-gray-700" />
+              <div>
+                <p className="font-semibold text-gray-900">Credit Card</p>
+                <p className="text-sm text-gray-600">Pay with card</p>
+              </div>
+            </div>
+          </button>
+
+          {/* QR Payment Option */}
+          <button
+            type="button"
+            onClick={() => setShowQRPayment(true)}
+            className={`p-4 border-2 rounded-xl text-left transition-all duration-200 ${
+              selectedPaymentMethod === "qr"
+                ? "border-primary-500 bg-primary-50"
+                : "border-gray-300 hover:border-gray-400"
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                  selectedPaymentMethod === "qr"
+                    ? "border-primary-500 bg-primary-500"
+                    : "border-gray-400"
+                }`}
+              >
+                {selectedPaymentMethod === "qr" && (
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                )}
+              </div>
+              <QrCode size={20} className="text-gray-700" />
+              <div>
+                <p className="font-semibold text-gray-900">QR Code</p>
+                <p className="text-sm text-gray-600">Scan to pay</p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* QR Payment Instructions */}
+        {selectedPaymentMethod === "qr" && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200"
+          >
+            <div className="flex items-start space-x-3">
+              <Smartphone className="w-5 h-5 text-blue-600 mt-0.5" />
+              <div className="text-sm text-blue-800">
+                <p className="font-semibold">Fast & Secure QR Payments</p>
+                <ul className="mt-1 space-y-1">
+                  <li>• Scan QR code with any payment app</li>
+                  <li>• Instant payment confirmation</li>
+                  <li>• No card details required</li>
+                  <li>• Bank-level security</li>
+                </ul>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
       {/* Personal Information */}
       <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
         <h4 className="font-semibold text-gray-900 mb-4">
@@ -128,7 +508,6 @@ const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
         </h4>
 
         <div className="space-y-4">
-          {/* Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Full Name
@@ -144,7 +523,6 @@ const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
             />
           </div>
 
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email Address
@@ -162,29 +540,60 @@ const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
         </div>
       </div>
 
-      {/* Stripe Payment Element */}
-      <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
-        <h4 className="font-semibold text-gray-900 mb-4">Payment Details</h4>
-
-        <div className="space-y-4">
-          {clientSecret && (
-            <PaymentElement
-              options={{
-                layout: "tabs",
-                fields: {
-                  billingDetails: {
-                    name: "never",
-                    email: "never",
+      {/* Stripe Payment Element - Only show for card payments */}
+      {selectedPaymentMethod === "card" && (
+        <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
+          <h4 className="font-semibold text-gray-900 mb-4">Card Details</h4>
+          <div className="space-y-4">
+            {clientSecret && (
+              <PaymentElement
+                options={{
+                  layout: "tabs",
+                  fields: {
+                    billingDetails: {
+                      name: "never",
+                      email: "never",
+                    },
                   },
-                },
-              }}
-              className="min-h-[200px]"
-            />
-          )}
+                }}
+                className="min-h-[200px]"
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* User Info Summary */}
+      {/* QR Payment Preview */}
+      {selectedPaymentMethod === "qr" && (
+        <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
+          <h4 className="font-semibold text-gray-900 mb-4">QR Payment</h4>
+          <div className="text-center space-y-4">
+            <div className="bg-white p-8 rounded-xl border-2 border-dashed border-gray-300">
+              <div className="text-center">
+                <QrCode size={64} className="text-primary-600 mx-auto mb-4" />
+                <p className="text-gray-600 font-medium">
+                  Fast & Secure QR Payments
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Click the QR Code payment button to generate your payment QR
+                  code
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center justify-center space-x-2 text-green-800">
+                <CheckCircle2 size={16} />
+                <p className="text-sm font-medium">
+                  Supported by all major payment apps
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Summary */}
       <div className="bg-gray-50 rounded-2xl p-5">
         <h4 className="font-semibold text-gray-900 mb-3">Order Summary</h4>
         <div className="space-y-2 text-sm text-gray-600">
@@ -199,6 +608,12 @@ const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
           <div className="flex justify-between">
             <span>Product:</span>
             <span className="font-medium text-gray-900">{project.title}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Payment Method:</span>
+            <span className="font-medium text-gray-900 capitalize">
+              {selectedPaymentMethod === "qr" ? "QR Code" : "Credit Card"}
+            </span>
           </div>
           <div className="flex justify-between">
             <span>Amount:</span>
@@ -232,6 +647,15 @@ const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
             <p className="text-xs">Accepted worldwide</p>
           </div>
         </div>
+        {selectedPaymentMethod === "qr" && (
+          <div className="flex items-center space-x-3 text-green-800">
+            <QrCode size={20} />
+            <div>
+              <p className="font-semibold text-sm">QR Payments</p>
+              <p className="text-xs">Instant bank transfers</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Terms and Conditions */}
@@ -284,26 +708,49 @@ const CheckoutForm = ({ project, projectId, clientSecret, onSuccess }) => {
       )}
 
       {/* Payment Button */}
-      <motion.button
-        whileHover={{ scale: acceptedTerms && !loading ? 1.02 : 1 }}
-        whileTap={{ scale: acceptedTerms && !loading ? 0.98 : 1 }}
-        type="submit"
-        disabled={!stripe || !elements || loading || !acceptedTerms}
-        className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none relative overflow-hidden"
-      >
-        {loading ? (
+      {selectedPaymentMethod === "card" && (
+        <motion.button
+          whileHover={{ scale: acceptedTerms && !loading ? 1.02 : 1 }}
+          whileTap={{ scale: acceptedTerms && !loading ? 0.98 : 1 }}
+          type="submit"
+          disabled={!stripe || !elements || loading || !acceptedTerms}
+          className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none relative overflow-hidden"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
+              Processing Payment...
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <CreditCard size={20} className="mr-2" />
+              Pay ${project.price}
+            </div>
+          )}
+        </motion.button>
+      )}
+
+      {/* QR Payment CTA */}
+      {selectedPaymentMethod === "qr" && (
+        <motion.button
+          type="button"
+          onClick={() => setShowQRPayment(true)}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200"
+        >
           <div className="flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
-            Processing Payment...
+            <QrCode size={20} className="mr-2" />
+            Pay with QR Code - ${project.price}
           </div>
-        ) : (
-          `Pay $${project.price}`
-        )}
-      </motion.button>
+        </motion.button>
+      )}
 
       <p className="text-xs text-gray-500 text-center flex items-center justify-center">
         <Lock size={12} className="mr-1" />
-        Powered by Stripe - Your payment is secure and encrypted
+        {selectedPaymentMethod === "card"
+          ? "Powered by Stripe - Your payment is secure and encrypted"
+          : "Bank-level security - Your payment is protected"}
       </p>
     </form>
   );
@@ -318,6 +765,7 @@ const Checkout = () => {
   const [clientSecret, setClientSecret] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("idle");
   const [error, setError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
 
   // Fetch project data
   const {
@@ -332,7 +780,9 @@ const Checkout = () => {
         throw new Error("Invalid project ID");
       }
       try {
+        console.log("Fetching project data for ID:", projectId);
         const response = await apiService.projects.getById(projectId);
+        console.log("Project data response:", response);
         return response;
       } catch (error) {
         console.error("Project fetch error:", error);
@@ -367,11 +817,19 @@ const Checkout = () => {
         projectId: project._id,
         amount: project.price,
         currency: "usd",
+        userId: user?._id,
+        projectTitle: project.title,
       });
+
+      // Validate price
+      const price = parseFloat(project.price);
+      if (isNaN(price) || price <= 0) {
+        throw new Error("Invalid project price");
+      }
 
       const response = await apiService.payments.createPaymentIntent({
         projectId: project._id,
-        amount: project.price,
+        amount: price,
         currency: "usd",
       });
 
@@ -389,20 +847,34 @@ const Checkout = () => {
       }
     } catch (err) {
       console.error("Payment intent creation error details:", err);
+      console.error("Error stack:", err.stack);
 
       let errorMessage = "Failed to initialize payment";
 
       if (err.response) {
+        // Axios error response
+        console.error("Axios error response:", err.response);
         errorMessage =
           err.response.data?.message || `Server error: ${err.response.status}`;
       } else if (err.request) {
+        // Network error
+        console.error("Network error - no response received:", err.request);
         errorMessage = "Network error: Unable to connect to payment service";
       } else {
+        // Other errors
         errorMessage = err.message || "Payment initialization failed";
       }
 
       setError(errorMessage);
       setPaymentStatus("failed");
+
+      // Auto-retry logic (max 3 retries)
+      if (retryCount < 3) {
+        setTimeout(() => {
+          setRetryCount((prev) => prev + 1);
+          createPaymentIntent();
+        }, 2000);
+      }
     }
   };
 
@@ -420,6 +892,7 @@ const Checkout = () => {
   const retryPaymentIntent = () => {
     setError("");
     setPaymentStatus("idle");
+    setRetryCount(0);
     createPaymentIntent();
   };
 
@@ -582,18 +1055,20 @@ const Checkout = () => {
                 <div>
                   <p className="text-red-700 font-medium">{error}</p>
                   <p className="text-red-600 text-sm mt-1">
-                    Please check your payment details and try again.
+                    {retryCount > 0
+                      ? `Retry attempt ${retryCount}/3`
+                      : "Please check your payment details and try again."}
                   </p>
                 </div>
               </div>
-              {error.includes("payment intent") && (
-                <button
-                  onClick={retryPaymentIntent}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
-                >
-                  Retry
-                </button>
-              )}
+              <button
+                onClick={retryPaymentIntent}
+                disabled={retryCount >= 3}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                <RefreshCw size={16} className="mr-2" />
+                {retryCount >= 3 ? "Max Retries" : "Retry"}
+              </button>
             </div>
           </motion.div>
         )}
@@ -851,6 +1326,11 @@ const Checkout = () => {
                 <div className="text-center py-12 bg-gray-50 rounded-2xl">
                   <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading payment form...</p>
+                  {error && (
+                    <p className="text-sm text-red-500 mt-2">
+                      If this persists, please try refreshing the page
+                    </p>
+                  )}
                 </div>
               )}
             </div>

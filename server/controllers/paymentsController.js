@@ -73,7 +73,7 @@ export const createPaymentIntent = async (req, res) => {
       });
     }
 
-    // Create Stripe payment intent
+    // Create Stripe payment intent - ONLY FOR CARD PAYMENTS
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: currency.toLowerCase(),
@@ -85,11 +85,13 @@ export const createPaymentIntent = async (req, res) => {
       automatic_payment_methods: {
         enabled: true,
       },
+      // REMOVED: payment_method_types and payment_method_options for QR
+      // Only card payments are handled by Stripe
+      // Your separate QR system handles QR payments independently
     });
 
     console.log("Stripe payment intent created:", paymentIntent.id);
 
-    // FIX: Remove orderId field or generate a unique orderId
     const paymentData = {
       paymentIntentId: paymentIntent.id,
       amount: amount, // Store the original amount (in dollars)
@@ -103,9 +105,6 @@ export const createPaymentIntent = async (req, res) => {
         projectTitle: project.title,
       },
     };
-
-    // Only add orderId if you have a proper unique value
-    // paymentData.orderId = generateUniqueOrderId(); // Uncomment if you need orderId
 
     const payment = await Payment.create(paymentData);
 
@@ -163,7 +162,8 @@ export const createPaymentIntent = async (req, res) => {
     });
   }
 };
-// In your confirmPayment function or webhook handler
+
+// Enhanced confirmPayment function - SIMPLIFIED
 export const confirmPayment = async (req, res) => {
   try {
     const { paymentIntentId } = req.body;
@@ -175,7 +175,9 @@ export const confirmPayment = async (req, res) => {
       });
     }
 
-    console.log("Confirming payment:", paymentIntentId);
+    console.log("Confirming payment:", {
+      paymentIntentId,
+    });
 
     // Retrieve payment intent from Stripe to verify status
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -217,6 +219,7 @@ export const confirmPayment = async (req, res) => {
     res.json({
       success: paymentIntent.status === "succeeded",
       status: payment.status,
+      stripeStatus: paymentIntent.status,
       message:
         paymentIntent.status === "succeeded"
           ? "Payment successful"
@@ -231,18 +234,11 @@ export const confirmPayment = async (req, res) => {
     });
   }
 };
-// Webhook handler for Stripe events
+
+// Webhook handler - SIMPLIFIED
 export const handleWebhook = async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
-
-  console.log("🔔 Webhook received - Headers:", {
-    signature: sig ? "Present" : "Missing",
-    contentType: req.headers["content-type"],
-    userAgent: req.headers["user-agent"],
-  });
-
-  console.log("🔔 Webhook raw body:", req.body);
 
   try {
     // Verify webhook signature
@@ -254,29 +250,23 @@ export const handleWebhook = async (req, res) => {
     console.log("✅ Webhook signature verified");
   } catch (err) {
     console.error(`❌ Webhook signature verification failed:`, err.message);
-    console.log(
-      "❌ STRIPE_WEBHOOK_SECRET exists:",
-      !!process.env.STRIPE_WEBHOOK_SECRET
-    );
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
     console.log("🔔 Webhook event type:", event.type);
-    console.log("🔔 Webhook event ID:", event.id);
-    console.log("🔔 Payment Intent ID:", event.data.object.id);
+
+    const paymentIntent = event.data.object;
 
     // Handle the event
     switch (event.type) {
       case "payment_intent.succeeded":
         console.log("🎉 PAYMENT_INTENT.SUCCEEDED event received");
-        const paymentIntentSucceeded = event.data.object;
-        await handlePaymentIntentSucceeded(paymentIntentSucceeded);
+        await handlePaymentIntentSucceeded(paymentIntent);
         break;
       case "payment_intent.payment_failed":
         console.log("💥 PAYMENT_INTENT.PAYMENT_FAILED event received");
-        const paymentIntentFailed = event.data.object;
-        await handlePaymentIntentFailed(paymentIntentFailed);
+        await handlePaymentIntentFailed(paymentIntent);
         break;
       default:
         console.log(`⚡ Unhandled event type: ${event.type}`);
@@ -286,106 +276,58 @@ export const handleWebhook = async (req, res) => {
     res.json({ received: true });
   } catch (error) {
     console.error("❌ Webhook handler error:", error);
-    console.error("❌ Error stack:", error.stack);
     res.status(500).json({ error: "Webhook handler failed" });
   }
 };
 
-// Helper function for successful payment - WITH COMPREHENSIVE LOGGING
+// Enhanced success handler - SIMPLIFIED
 const handlePaymentIntentSucceeded = async (paymentIntent) => {
   try {
-    console.log("💰 handlePaymentIntentSucceeded started");
-    console.log("💰 Payment Intent ID:", paymentIntent.id);
-    console.log("💰 Payment Intent Status:", paymentIntent.status);
-    console.log("💰 Amount:", paymentIntent.amount);
-    console.log("💰 Metadata:", paymentIntent.metadata);
+    console.log("🎉 Handling successful payment:", paymentIntent.id);
 
-    // Find payment record
     const payment = await Payment.findOne({
       paymentIntentId: paymentIntent.id,
     });
-
     if (!payment) {
-      console.log("❌ Payment record not found for paymentIntentId:", paymentIntent.id);
-      
-      // Try to find by other criteria
-      const allPayments = await Payment.find({});
-      console.log("🔍 All payments in DB:", allPayments.map(p => ({
-        _id: p._id,
-        paymentIntentId: p.paymentIntentId,
-        status: p.status
-      })));
+      console.error("❌ Payment record not found for:", paymentIntent.id);
       return;
     }
 
-    console.log("✅ Payment record found:", {
-      paymentId: payment._id,
-      currentStatus: payment.status,
-      userId: payment.user,
-      projectId: payment.project
-    });
-
     // Update payment status
-    console.log("🔄 Updating payment status from", payment.status, "to succeeded");
     payment.status = "succeeded";
     payment.paymentMethod = paymentIntent.payment_method;
     await payment.save();
+
     console.log("✅ Payment status updated to succeeded");
 
     // Add project to user's purchased projects
-    console.log("🔄 Adding project to user's purchased projects");
-    const userUpdate = await User.findByIdAndUpdate(
-      payment.user,
-      {
-        $addToSet: { purchasedProjects: payment.project }
-      },
-      { new: true }
-    ).populate('purchasedProjects', 'title _id');
+    await User.findByIdAndUpdate(payment.user, {
+      $addToSet: { purchasedProjects: payment.project },
+    });
 
-    console.log("✅ User profile updated successfully");
-    console.log("📊 User now has", userUpdate.purchasedProjects.length, "purchased projects");
-    console.log("📊 Purchased projects:", userUpdate.purchasedProjects.map(p => p.title));
-
-    // Verify the project exists
-    const project = await Project.findById(payment.project);
-    if (!project) {
-      console.log("❌ Project not found:", payment.project);
-    } else {
-      console.log("✅ Project found:", project.title);
-    }
-
-    console.log("🎉 handlePaymentIntentSucceeded completed successfully");
-
+    console.log("✅ Project added to user's purchased projects");
   } catch (error) {
-    console.error("❌ Error in handlePaymentIntentSucceeded:", error);
-    console.error("❌ Error stack:", error.stack);
-    throw error; // Re-throw to be caught by webhook handler
+    console.error("❌ Error handling successful payment:", error);
   }
 };
 
-// Helper function for failed payment
+// Enhanced failure handler
 const handlePaymentIntentFailed = async (paymentIntent) => {
   try {
-    console.log("💥 handlePaymentIntentFailed started");
-    console.log("💥 Payment Intent ID:", paymentIntent.id);
-    console.log("💥 Last error:", paymentIntent.last_payment_error);
+    console.log("💥 Handling failed payment:", paymentIntent.id);
 
     const payment = await Payment.findOne({
       paymentIntentId: paymentIntent.id,
     });
-
-    if (payment && payment.status !== "failed") {
-      console.log("🔄 Updating payment status to failed");
+    if (payment) {
       payment.status = "failed";
-      payment.lastPaymentError = paymentIntent.last_payment_error;
+      payment.error =
+        paymentIntent.last_payment_error?.message || "Payment failed";
       await payment.save();
-      console.log("✅ Payment status updated to failed");
-    } else {
-      console.log("ℹ️ Payment not found or already failed");
+      console.log("❌ Payment status updated to failed:", paymentIntent.id);
     }
-
   } catch (error) {
-    console.error("❌ Error in handlePaymentIntentFailed:", error);
+    console.error("Error handling failed payment:", error);
   }
 };
 
@@ -813,4 +755,303 @@ export const downloadInvoice = async (req, res) => {
       message: "Server error while generating invoice",
     });
   }
+};
+
+// controllers/paymentController.js
+
+// Create QR payment
+export const createQRPayment = async (req, res) => {
+  try {
+    console.log("Creating QR payment with data:", req.body);
+    console.log("Authenticated user:", req.user._id);
+
+    const { projectId, amount, currency = "usd" } = req.body;
+
+    if (!projectId || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: "Project ID and amount required",
+      });
+    }
+
+    // Validate project exists and is active
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    if (!project.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "Project is not available for purchase",
+      });
+    }
+
+    // Convert amount to cents
+    const amountInCents = Math.round(amount * 100);
+
+    if (amountInCents < 50) {
+      return res.status(400).json({
+        success: false,
+        message: "Amount must be at least $0.50",
+      });
+    }
+
+    // Check for existing QR payment
+    const existingPayment = await Payment.findOne({
+      user: req.user._id,
+      project: projectId,
+      paymentMethod: "qr",
+      status: { $in: ["created", "processing"] },
+    });
+
+    if (existingPayment && existingPayment.qrCodeData) {
+      console.log("Using existing QR payment:", existingPayment._id);
+      return res.json({
+        success: true,
+        qrCodeData: existingPayment.qrCodeData,
+        paymentId: existingPayment._id,
+        amount: amount,
+        message: "Using existing QR payment session",
+      });
+    }
+
+    // Generate unique payment reference
+    const paymentReference = `QR${Date.now()}${Math.random()
+      .toString(36)
+      .substr(2, 9)}`.toUpperCase();
+
+    // Create payment record for QR
+    const paymentData = {
+      paymentReference: paymentReference,
+      amount: amount,
+      currency: currency,
+      user: req.user._id,
+      project: projectId,
+      status: "created",
+      paymentMethod: "qr",
+      metadata: {
+        stripeAmount: amountInCents,
+        projectTitle: project.title,
+        paymentType: "qr_code",
+      },
+    };
+
+    const payment = await Payment.create(paymentData);
+
+    // Generate QR code data (this would be your payment gateway specific data)
+    const qrCodeData = generateQRCodeData({
+      paymentId: payment._id.toString(),
+      amount: amount,
+      currency: currency,
+      reference: paymentReference,
+      merchant: "YourAppName",
+      account: process.env.QR_MERCHANT_ACCOUNT, // Your payment gateway account
+    });
+
+    // Update payment with QR data
+    payment.qrCodeData = qrCodeData;
+    await payment.save();
+
+    console.log("QR payment created:", payment._id);
+
+    res.json({
+      success: true,
+      qrCodeData: qrCodeData,
+      paymentId: payment._id,
+      paymentReference: paymentReference,
+      amount: amount,
+      currency: currency,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes expiry
+    });
+  } catch (err) {
+    console.error("QR payment creation error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create QR payment",
+      error: err.message,
+    });
+  }
+};
+
+// Check QR payment status
+export const checkQRPaymentStatus = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    if (!paymentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment ID required",
+      });
+    }
+
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      });
+    }
+
+    // For demo purposes, simulate payment status
+    // In production, you would check with your actual QR payment gateway
+    const paymentStatus = await simulateQRPaymentStatus(
+      payment.paymentReference
+    );
+
+    // Update payment status based on simulated response
+    if (paymentStatus.status === "paid" && payment.status !== "succeeded") {
+      payment.status = "succeeded";
+      payment.paidAt = new Date();
+      await payment.save();
+
+      // Grant project access
+      await User.findByIdAndUpdate(payment.user, {
+        $addToSet: { purchasedProjects: payment.project },
+      });
+
+      console.log("QR payment completed successfully");
+    } else if (
+      paymentStatus.status === "failed" &&
+      payment.status !== "failed"
+    ) {
+      payment.status = "failed";
+      payment.error = paymentStatus.error || "Payment failed";
+      await payment.save();
+    } else if (paymentStatus.status === "pending") {
+      payment.status = "processing";
+      await payment.save();
+    }
+
+    res.json({
+      success: true,
+      status: payment.status,
+      paymentStatus: paymentStatus.status,
+      message: getStatusMessage(payment.status),
+    });
+  } catch (err) {
+    console.error("QR payment status check error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to check payment status",
+      error: err.message,
+    });
+  }
+};
+
+// Helper function to generate QR code data
+export const generateQRCodeData = (paymentData) => {
+  // This is a demo implementation
+  // In production, you would generate actual QR data for your payment gateway
+  const qrPayload = {
+    version: "1.0",
+    type: "payment",
+    paymentId: paymentData.paymentId,
+    amount: paymentData.amount,
+    currency: paymentData.currency,
+    reference: paymentData.reference,
+    merchant: paymentData.merchant,
+    timestamp: new Date().toISOString(),
+    demo: true, // Remove this in production
+  };
+
+  return JSON.stringify(qrPayload);
+};
+
+// Webhook for QR payment notifications (from your payment gateway)
+export const handleQRWebhook = async (req, res) => {
+  try {
+    const { paymentReference, status, transactionId, amount, currency } =
+      req.body;
+
+    console.log("QR Webhook received:", {
+      paymentReference,
+      status,
+      transactionId,
+    });
+
+    // Verify webhook signature (implement based on your payment gateway)
+    const isValid = verifyWebhookSignature(req);
+    if (!isValid) {
+      return res.status(401).json({ error: "Invalid webhook signature" });
+    }
+
+    const payment = await Payment.findOne({ paymentReference });
+    if (!payment) {
+      return res.status(404).json({ error: "Payment not found" });
+    }
+
+    if (status === "success" || status === "paid") {
+      if (payment.status !== "succeeded") {
+        payment.status = "succeeded";
+        payment.transactionId = transactionId;
+        payment.paidAt = new Date();
+        await payment.save();
+
+        // Grant project access
+        await User.findByIdAndUpdate(payment.user, {
+          $addToSet: { purchasedProjects: payment.project },
+        });
+
+        console.log("QR payment completed via webhook");
+      }
+    } else if (status === "failed") {
+      payment.status = "failed";
+      payment.error = "Payment failed";
+      await payment.save();
+    }
+
+    res.json({ received: true });
+  } catch (err) {
+    console.error("QR webhook error:", err);
+    res.status(500).json({ error: "Webhook processing failed" });
+  }
+};
+
+// Mock function to check with payment gateway
+export const checkWithPaymentGateway = async (paymentReference) => {
+  // Implement based on your QR payment provider's API
+  // This is a mock implementation
+  return {
+    status: "pending", // 'pending', 'paid', 'failed'
+    transactionId: null,
+    amount: 0,
+    currency: "USD",
+  };
+};
+
+// Mock webhook verification
+export const verifyWebhookSignature = (req) => {
+  // Implement based on your payment gateway's webhook security
+  return true;
+};
+
+// Simulate QR payment status (for demo - replace with actual gateway integration)
+export const simulateQRPaymentStatus = async (paymentReference) => {
+  // Simulate different statuses for demo
+  // In production, integrate with your actual QR payment provider
+  const statuses = ["pending", "paid", "failed"];
+  const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+  return {
+    status: randomStatus,
+    transactionId: randomStatus === "paid" ? `TXN${Date.now()}` : null,
+    amount: 0,
+    currency: "USD",
+  };
+};
+
+export const getStatusMessage = (status) => {
+  const messages = {
+    created: "Payment created - scan QR code to pay",
+    processing: "Payment processing - please wait",
+    succeeded: "Payment completed successfully",
+    failed: "Payment failed",
+    expired: "Payment expired",
+  };
+  return messages[status] || "Unknown status";
 };

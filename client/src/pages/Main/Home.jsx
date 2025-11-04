@@ -133,7 +133,7 @@ const Home = () => {
           company: "TechCorp",
           content:
             "The projects and insights here have transformed our development process. Highly recommended!",
-          avatar: "/avatars/1.jpg",
+          avatar: "https://randomuser.me/api/portraits/women/71.jpg",
           rating: 5,
         },
         {
@@ -143,7 +143,7 @@ const Home = () => {
           company: "StartUpXYZ",
           content:
             "Found exactly what I needed to accelerate my learning curve. The community is amazing!",
-          avatar: "/avatars/2.jpg",
+          avatar: "https://randomuser.me/api/portraits/men/64.jpg",
           rating: 5,
         },
         {
@@ -153,7 +153,7 @@ const Home = () => {
           company: "DesignStudio",
           content:
             "The quality of work and depth of articles here is exceptional. My go-to resource!",
-          avatar: "/avatars/3.jpg",
+          avatar: "https://randomuser.me/api/portraits/women/67.jpg",
           rating: 4,
         },
       ]);

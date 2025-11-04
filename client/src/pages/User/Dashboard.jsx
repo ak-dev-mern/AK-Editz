@@ -19,10 +19,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("purchased");
 
   // Debug user data
-  useEffect(() => {
-    console.log("👤 Current User:", user);
-    console.log("👤 User ID:", user?._id);
-  }, [user]);
+  useEffect(() => {}, [user]);
 
   // Fetch purchased projects with enhanced error handling
   const {
@@ -35,7 +32,7 @@ const Dashboard = () => {
     queryFn: async () => {
       try {
         const response = await apiService.payments.getPurchasedProjects();
-        console.log("📦 Purchased Projects API Raw Response:", response);
+
         return response;
       } catch (error) {
         console.error("📦 Purchased Projects API Error:", error);
@@ -57,7 +54,7 @@ const Dashboard = () => {
     queryFn: async () => {
       try {
         const response = await apiService.payments.getUserPayments();
-        console.log("💳 User Payments API Raw Response:", response);
+
         return response;
       } catch (error) {
         console.error("💳 User Payments API Error:", error);
@@ -71,55 +68,39 @@ const Dashboard = () => {
   // Enhanced data extraction with comprehensive logging
   const getPurchasedProjects = () => {
     if (!purchasedProjectsData) {
-      console.log("❌ No purchasedProjectsData available");
       return [];
     }
-
-    console.log(
-      "🔄 Extracting purchased projects from:",
-      purchasedProjectsData
-    );
 
     let projects = [];
 
     // Handle all possible response structures
     if (Array.isArray(purchasedProjectsData)) {
-      console.log("✅ Found direct array of projects");
       projects = purchasedProjectsData;
     } else if (Array.isArray(purchasedProjectsData?.projects)) {
-      console.log("✅ Found projects array in .projects");
       projects = purchasedProjectsData.projects;
     } else if (Array.isArray(purchasedProjectsData?.data)) {
-      console.log("✅ Found data array in .data");
       projects = purchasedProjectsData.data;
     } else if (
       purchasedProjectsData?.success &&
       Array.isArray(purchasedProjectsData.data)
     ) {
-      console.log("✅ Found success response with data array");
       projects = purchasedProjectsData.data;
     } else if (
       purchasedProjectsData?.success &&
       Array.isArray(purchasedProjectsData.projects)
     ) {
-      console.log("✅ Found success response with projects array");
       projects = purchasedProjectsData.projects;
     } else {
-      console.log("❌ Could not extract projects from response structure");
       projects = [];
     }
 
-    console.log(`🎯 Extracted ${projects.length} projects:`, projects);
     return projects;
   };
 
   const getPaymentsData = () => {
     if (!userPayments) {
-      console.log("❌ No userPayments data available");
       return [];
     }
-
-    console.log("🔄 Extracting payments from:", userPayments);
 
     let payments = [];
 
@@ -134,11 +115,9 @@ const Dashboard = () => {
     } else if (userPayments?.success && Array.isArray(userPayments.payments)) {
       payments = userPayments.payments;
     } else {
-      console.log("❌ Could not extract payments from response structure");
       payments = [];
     }
 
-    console.log(`🎯 Extracted ${payments.length} payments:`, payments);
     return payments;
   };
 
@@ -146,14 +125,10 @@ const Dashboard = () => {
   const paymentsData = getPaymentsData();
 
   // Log final data
-  useEffect(() => {
-    console.log("🎯 FINAL - Purchased projects:", purchasedProjects);
-    console.log("🎯 FINAL - Payments data:", paymentsData);
-  }, [purchasedProjects, paymentsData]);
+  useEffect(() => {}, [purchasedProjects, paymentsData]);
 
   const downloadProject = async (projectId, projectTitle) => {
     try {
-      console.log(`⬇️ Downloading project: ${projectTitle} (${projectId})`);
       const response = await apiService.projects.download(projectId);
 
       // Create download link
@@ -165,8 +140,6 @@ const Dashboard = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-
-      console.log("✅ Download initiated successfully");
     } catch (error) {
       console.error("❌ Download error:", error);
       alert("Error downloading project. Please try again.");
@@ -174,7 +147,6 @@ const Dashboard = () => {
   };
 
   const handleRefresh = () => {
-    console.log("🔄 Refreshing data...");
     refetchProjects();
     refetchPayments();
   };

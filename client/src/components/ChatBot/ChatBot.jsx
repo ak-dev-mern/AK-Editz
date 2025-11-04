@@ -165,7 +165,7 @@ const ChatBot = () => {
 
         {/* Chat Window */}
         {isOpen && (
-          <div className="bg-white rounded-2xl shadow-2xl w-96 h-[600px] flex flex-col border border-gray-200 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-[380px] h-[600px] flex flex-col border border-gray-200 animate-fade-in">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
               <div className="flex items-center space-x-3">

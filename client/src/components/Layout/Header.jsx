@@ -80,12 +80,14 @@ const Header = () => {
                     Admin Panel
                   </Link>
                 )}
-                <Link
-                  to="/dashboard"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Dashboard
-                </Link>
+                {user?.role !== "admin" && (
+                  <Link
+                    to="/dashboard"
+                    className="text-gray-600 hover:text-blue-600 transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                )}
                 <div className="relative group">
                   <button className="flex items-center space-x-2 text-gray-700">
                     <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
@@ -200,12 +202,15 @@ const Header = () => {
                       Admin Panel
                     </Link>
                   )}
-                  <Link
-                    to="/dashboard"
-                    className="text-gray-600 hover:text-blue-600 py-2"
-                  >
-                    Dashboard
-                  </Link>
+                  {user?.role !== "admin" && (
+                    <Link
+                      to="/dashboard"
+                      className="text-gray-600 hover:text-blue-600 py-2"
+                    >
+                      Dashboard
+                    </Link>
+                  )}
+
                   <Link
                     to="/profile"
                     className="text-gray-600 hover:text-blue-600 py-2"
