@@ -10,7 +10,17 @@ export default defineConfig({
       "/api": {
         target: "https://ak-editz.onrender.com",
         changeOrigin: true,
+        secure: false,
       },
     },
+  },
+  // Add build configuration
+  build: {
+    outDir: "dist",
+    sourcemap: false,
+  },
+  // Define environment variables
+  define: {
+    "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
   },
 });
