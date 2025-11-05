@@ -11,9 +11,6 @@ import {
   getAllPayments,
   getPaymentStats,
   refundPayment,
-  handleQRWebhook,
-  checkQRPaymentStatus,
-  createQRPayment,
 } from "../controllers/paymentsController.js";
 import adminAuth from "../middleware/adminAuth.js";
 import auth from "../middleware/auth.js";
@@ -26,10 +23,6 @@ router.post(
   express.raw({ type: "application/json" }),
   handleWebhook
 );
-
-router.post("/qr/create", auth, createQRPayment);
-router.get("/qr/status/:paymentId", auth, checkQRPaymentStatus);
-router.post("/qr/webhook", handleQRWebhook); // No auth for webhooks
 
 // User payment routes - PROTECTED (regular users)
 router.post("/create-payment-intent", auth, createPaymentIntent);
