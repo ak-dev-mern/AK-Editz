@@ -64,6 +64,7 @@ app.get("/", (req, res) => {
       projects: "/api/projects",
       blogs: "/api/blogs",
       payments: "/api/payments",
+      newsletter: "/api/newsletter",
     },
   });
 });
@@ -124,4 +125,5 @@ app.listen(PORT, () => {
   console.log(`   💼 Projects: http://localhost:${PORT}/api/projects`);
   console.log(`   📝 Blogs: http://localhost:${PORT}/api/blogs`);
   console.log(`   💳 Payments: http://localhost:${PORT}/api/payments`);
+  console.log(`   💳 Newsletter: http://localhost:${PORT}/api/newsletter`);
 });
