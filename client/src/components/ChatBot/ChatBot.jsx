@@ -547,7 +547,7 @@ I typically respond within a few hours. Would you like to schedule a meeting?`,
 
         {/* Chat Window */}
         {isOpen && (
-          <div className="bg-white rounded-2xl shadow-2xl w-[300px] h-[650px] flex flex-col border border-gray-200 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-[350px] h-[650px] flex flex-col border border-gray-200 animate-fade-in">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
               <div className="flex items-center space-x-3">
