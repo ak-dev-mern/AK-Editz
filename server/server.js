@@ -28,8 +28,15 @@ const app = express();
 // Middleware - Order matters!
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "https://ak-editz-1.onrender.com",
-    credentials: true, // This is important for cookies
+    origin: [
+      "https://ak-editz-1.onrender.com",
+      "https://ak-editz.onrender.com",
+      "http://localhost:3000",
+      "http://localhost:5173",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 app.use(express.json());
