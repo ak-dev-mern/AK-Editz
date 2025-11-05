@@ -28,7 +28,7 @@ const app = express();
 // Middleware - Order matters!
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "https://ak-editz.onrender.com",
+    origin: process.env.FRONTEND_URL || "https://ak-editz-1.onrender.com",
     credentials: true, // This is important for cookies
   })
 );
