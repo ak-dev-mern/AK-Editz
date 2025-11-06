@@ -29,8 +29,8 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "https://ak-editz-1.onrender.com",
-      "https://ak-editz.onrender.com",
+      "https://akeditz.com",
+      "https://www.akeditz.com",
       "http://localhost:3000",
       "http://localhost:5173",
     ],
