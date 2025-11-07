@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: "https://ak-editz.onrender.com/api,
+  baseURL: "https://ak-editz.onrender.com/api",
   timeout: 30000,
   withCredentials: true, // Important for cookies
 });
