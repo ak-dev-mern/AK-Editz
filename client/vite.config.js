@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "https://akeditz.com",
+        target: "https://akeditz.com" || "https://www.akeditz.com",
         changeOrigin: true,
         secure: false,
       },
