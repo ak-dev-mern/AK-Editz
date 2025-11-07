@@ -12,6 +12,7 @@ const generateToken = (userId) => {
 
 // Cookie options helper function
 const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === "production";
   return {
     expires: new Date(
       Date.now() +
