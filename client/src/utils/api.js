@@ -4,7 +4,7 @@ import axios from "axios";
 const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_URL ||
-    "https://www.akeditz.com",
+    "https://www.akeditz.com/api",
   timeout: 30000,
   withCredentials: true, // Important for cookies
 });
