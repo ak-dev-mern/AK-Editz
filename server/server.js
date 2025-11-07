@@ -33,7 +33,6 @@ app.use(
   cors({
     origin: [
       "https://akeditz.com",
-      "https://www.akeditz.com",
       "http://localhost:3000",
       "http://localhost:5173",
     ],
