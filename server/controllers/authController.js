@@ -20,6 +20,7 @@ const getCookieOptions = () => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    domain: isProduction ? ".akeditz.com" : undefined,
   };
 };
 
@@ -315,7 +316,7 @@ export const forgotPassword = async (req, res) => {
         <h2 style="color: #333;">Password Reset Request</h2>
         <p>You requested a password reset for your account. Click the button below to reset your password:</p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${frontendResetUrl}" 
+          <a href="${frontendResetUrl}"
              style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
             Reset Your Password
           </a>
@@ -407,7 +408,7 @@ export const resetPassword = async (req, res) => {
         <h2 style="color: #333;">Password Updated Successfully</h2>
         <p>Your password has been successfully reset. If you did not make this change, please contact support immediately.</p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/login" 
+          <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/login"
              style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
             Login to Your Account
           </a>
