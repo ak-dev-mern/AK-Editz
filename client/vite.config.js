@@ -8,19 +8,12 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "https://ak-editz.onrender.com",
+        target: "http://localhost:5000", // LOCAL ONLY
         changeOrigin: true,
-        secure: false,
       },
     },
   },
-  // Add build configuration
   build: {
     outDir: "dist",
-    sourcemap: false,
-  },
-  // Define environment variables
-  define: {
-    "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
   },
 });
