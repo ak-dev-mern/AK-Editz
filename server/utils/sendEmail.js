@@ -1,10 +1,6 @@
-// utils/sendEmail.js
-import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
-// or using CommonJS: const { MailerSend, EmailParams, Sender, Recipient } = require("mailersend");
+import { MailerSend, EmailParams, Recipient, Sender } from "mailersend";
 
-const mailerSend = new MailerSend({
-  apiKey: process.env.MAILERSEND_API_KEY,
-});
+const mailerSend = new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY });
 
 const sendEmail = async ({ to, subject, html }) => {
   try {
