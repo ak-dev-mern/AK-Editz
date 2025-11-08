@@ -1,53 +1,95 @@
-// utils/emailService.js
-import nodemailer from "nodemailer";
+import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
 
-// Singleton transporter to avoid creating a new one for every email
-let transporter;
+// Singleton MailerSend client
+let mailersend;
 
 /**
- * Get or create the Nodemailer transporter
+ * Get or create the MailerSend client
  */
-const getTransporter = () => {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: process.env.SMTP_PORT || 587,
-      secure: process.env.SMTP_PORT === "465", // true for port 465, false for 587
-      auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD, // Gmail App Password
-      },
+const getMailerSendClient = () => {
+  if (!mailersend) {
+    mailersend = new MailerSend({
+      apiKey: process.env.MAILERSEND_API_KEY,
     });
   }
-  return transporter;
+  return mailersend;
 };
 
 /**
- * Send a welcome email
+ * Send a welcome email using MailerSend
  * @param {string} email - Recipient email
  * @param {string} name - Recipient name
  */
 export const sendWelcomeEmail = async (email, name = "there") => {
   try {
-    const transporter = getTransporter();
+    const mailersend = getMailerSendClient();
 
     const frontendUrl = process.env.FRONTEND_URL || "https://akeditz.com";
     const unsubscribeUrl = `${frontendUrl}/unsubscribe`;
 
-    const mailOptions = {
-      from: `"${process.env.FROM_NAME}" <${process.env.FROM_EMAIL}>`,
-      to: email,
-      subject: "🎉 Welcome to AK Editz Newsletter!",
-      html: createWelcomeEmailTemplate(name, unsubscribeUrl, frontendUrl),
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log(
-      `✅ Welcome email sent to: ${email}, messageId: ${info.messageId}`
+    // Create sender
+    const sentFrom = new Sender(
+      process.env.FROM_EMAIL,
+      process.env.FROM_NAME || "AK Editz"
     );
-    return info;
+
+    // Create recipient
+    const recipients = [new Recipient(email, name)];
+
+    // Create email parameters
+    const emailParams = new EmailParams()
+      .setFrom(sentFrom)
+      .setTo(recipients)
+      .setSubject("🎉 Welcome to AK Editz Newsletter!")
+      .setHtml(createWelcomeEmailTemplate(name, unsubscribeUrl, frontendUrl))
+      .setText(
+        `Welcome to AK Editz Newsletter!\n\nHello ${name},\n\nThank you for subscribing to the AK Editz newsletter! We're thrilled to have you on board.\n\nReady to Explore?\nCheck out our latest projects: ${frontendUrl}/projects\n\nDon't want to receive these emails? Unsubscribe here: ${unsubscribeUrl}\n\nBest regards,\nAK Editz Team`
+      );
+
+    const response = await mailersend.email.send(emailParams);
+    console.log(`✅ Welcome email sent to: ${email}`);
+    return response;
   } catch (error) {
     console.error("❌ Failed to send welcome email:", error);
+    throw error;
+  }
+};
+
+/**
+ * Send a generic email using MailerSend
+ * @param {Object} emailData - Email data
+ * @param {string} emailData.to - Recipient email
+ * @param {string} emailData.subject - Email subject
+ * @param {string} emailData.html - HTML content
+ * @param {string} emailData.text - Text content (optional)
+ * @param {string} emailData.name - Recipient name (optional)
+ */
+export const sendEmail = async (emailData) => {
+  try {
+    const mailersend = getMailerSendClient();
+
+    const sentFrom = new Sender(
+      process.env.FROM_EMAIL,
+      process.env.FROM_NAME || "AK Editz"
+    );
+
+    const recipients = [new Recipient(emailData.to, emailData.name || "")];
+
+    const emailParams = new EmailParams()
+      .setFrom(sentFrom)
+      .setTo(recipients)
+      .setSubject(emailData.subject)
+      .setHtml(emailData.html);
+
+    if (emailData.text) {
+      emailParams.setText(emailData.text);
+    }
+
+    const response = await mailersend.email.send(emailParams);
+    console.log(`✅ Email sent to: ${emailData.to}`);
+    return response;
+  } catch (error) {
+    console.error("❌ Failed to send email:", error);
     throw error;
   }
 };
@@ -137,3 +179,8 @@ const createWelcomeEmailTemplate = (name, unsubscribeUrl, frontendUrl) => `
 </body>
 </html>
 `;
+
+export default {
+  sendWelcomeEmail,
+  sendEmail,
+};

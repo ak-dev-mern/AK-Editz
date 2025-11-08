@@ -1,186 +1,273 @@
-import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
+import React, { useState } from "react";
+import { Mail, MapPin, Clock, Send } from "lucide-react";
+import axios from "axios";
 
-// Singleton MailerSend client
-let mailersend;
+const Contact = () => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
 
-/**
- * Get or create the MailerSend client
- */
-const getMailerSendClient = () => {
-  if (!mailersend) {
-    mailersend = new MailerSend({
-      apiKey: process.env.MAILERSEND_API_KEY,
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
     });
-  }
-  return mailersend;
-};
+    setError("");
+  };
 
-/**
- * Send a welcome email using MailerSend
- * @param {string} email - Recipient email
- * @param {string} name - Recipient name
- */
-export const sendWelcomeEmail = async (email, name = "there") => {
-  try {
-    const mailersend = getMailerSendClient();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-    const frontendUrl = process.env.FRONTEND_URL || "https://akeditz.com";
-    const unsubscribeUrl = `${frontendUrl}/unsubscribe`;
+    const API_URL =
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-    // Create sender
-    const sentFrom = new Sender(
-      process.env.FROM_EMAIL,
-      process.env.FROM_NAME || "AK Editz"
-    );
+    console.log("📨 Sending to:", `${API_URL}/api/contact/send`);
+    console.log("📝 Form data:", formData);
 
-    // Create recipient
-    const recipients = [new Recipient(email, name)];
-
-    // Create email parameters
-    const emailParams = new EmailParams()
-      .setFrom(sentFrom)
-      .setTo(recipients)
-      .setSubject("🎉 Welcome to AK Editz Newsletter!")
-      .setHtml(createWelcomeEmailTemplate(name, unsubscribeUrl, frontendUrl))
-      .setText(
-        `Welcome to AK Editz Newsletter!\n\nHello ${name},\n\nThank you for subscribing to the AK Editz newsletter! We're thrilled to have you on board.\n\nReady to Explore?\nCheck out our latest projects: ${frontendUrl}/projects\n\nDon't want to receive these emails? Unsubscribe here: ${unsubscribeUrl}\n\nBest regards,\nAK Editz Team`
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/contact/send`,
+        {
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
       );
 
-    const response = await mailersend.email.send(emailParams);
-    console.log(`✅ Welcome email sent to: ${email}`);
-    return response;
-  } catch (error) {
-    console.error("❌ Failed to send welcome email:", error);
-    throw error;
-  }
-};
+      console.log("📡 Axios response:", response.data);
 
-/**
- * Send a generic email using MailerSend
- * @param {Object} emailData - Email data
- * @param {string} emailData.to - Recipient email
- * @param {string} emailData.subject - Email subject
- * @param {string} emailData.html - HTML content
- * @param {string} emailData.text - Text content (optional)
- * @param {string} emailData.name - Recipient name (optional)
- */
-export const sendEmail = async (emailData) => {
-  try {
-    const mailersend = getMailerSendClient();
+      if (response.data.success) {
+        setSubmitted(true);
+        setFormData({ name: "", email: "", subject: "", message: "" });
 
-    const sentFrom = new Sender(
-      process.env.FROM_EMAIL,
-      process.env.FROM_NAME || "AK Editz"
-    );
+        setTimeout(() => setSubmitted(false), 5000);
+      } else {
+        setError(response.data.message || "Failed to send message");
+      }
+    } catch (error) {
+      console.error("❌ Axios error:", error);
 
-    const recipients = [new Recipient(emailData.to, emailData.name || "")];
+      // Safely extract server error
+      const serverMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Network error. Please try again.";
 
-    const emailParams = new EmailParams()
-      .setFrom(sentFrom)
-      .setTo(recipients)
-      .setSubject(emailData.subject)
-      .setHtml(emailData.html);
-
-    if (emailData.text) {
-      emailParams.setText(emailData.text);
+      setError(serverMessage);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const response = await mailersend.email.send(emailParams);
-    console.log(`✅ Email sent to: ${emailData.to}`);
-    return response;
-  } catch (error) {
-    console.error("❌ Failed to send email:", error);
-    throw error;
-  }
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-16">
+      <div className="max-w-6xl mx-auto px-6 lg:px-12">
+        {/* Header Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-extrabold text-gray-900 mb-4">
+            Contact
+            <br className="block sm:hidden" />
+            <span className="text-blue-600 sm:ml-2">AK Editz</span>
+          </h1>
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+            Have questions or feedback? We're here to help. Drop us a message
+            and we'll get back to you shortly.
+          </p>
+        </div>
+
+        {/* Contact Container */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-stretch">
+          {/* Contact Info Card */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 space-y-8 hover:shadow-2xl transition duration-300">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Get in Touch
+            </h2>
+
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Email</h3>
+                  <p className="text-gray-600 text-sm">akeditzdj@gmail.com</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-full bg-green-100 text-green-600">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Based In</h3>
+                  <p className="text-gray-600 text-sm">India</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-full bg-purple-100 text-purple-600">
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">Response Time</h3>
+                  <p className="text-gray-600 text-sm">Within 24 hours</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <h3 className="font-semibold text-blue-900 mb-2">
+                Before Contacting
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• Check our FAQ page</li>
+                <li>• Search our documentation</li>
+                <li>• Include all relevant details</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Contact Form */}
+          <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition duration-300">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Send a Message
+            </h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Your Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    disabled={loading}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="email"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    disabled={loading}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="subject"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  id="subject"
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="message"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Message
+                </label>
+                <textarea
+                  id="message"
+                  name="message"
+                  rows="6"
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
+                  disabled={loading}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50"
+                ></textarea>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    Send Message
+                  </>
+                )}
+              </button>
+
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 font-medium flex items-center gap-2">
+                    <span>❌</span>
+                    {error}
+                  </p>
+                </div>
+              )}
+
+              {submitted && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-700 font-medium flex items-center gap-2">
+                    <span>✅</span>
+                    Thank you! Your message has been sent. We'll get back to you
+                    soon.
+                  </p>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-/**
- * Generate the HTML template for welcome emails
- */
-const createWelcomeEmailTemplate = (name, unsubscribeUrl, frontendUrl) => `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Welcome to AK Editz</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; }
-  .email-container { max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center; color: white; }
-  .logo { font-size: 32px; font-weight: bold; margin-bottom: 10px; }
-  .header h1 { font-size: 28px; margin-bottom: 10px; font-weight: 600; }
-  .content { padding: 40px 30px; }
-  .welcome-text { font-size: 18px; margin-bottom: 30px; color: #555; text-align: center; }
-  .features { display: grid; gap: 20px; margin: 30px 0; }
-  .feature { display: flex; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #667eea; }
-  .feature-icon { font-size: 24px; margin-right: 15px; }
-  .feature-text { flex: 1; }
-  .feature-title { font-weight: 600; color: #333; margin-bottom: 5px; }
-  .feature-desc { color: #666; font-size: 14px; }
-  .cta-section { text-align: center; margin: 30px 0; padding: 25px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 15px; color: white; }
-  .cta-title { font-size: 20px; margin-bottom: 10px; font-weight: 600; }
-  .cta-button { display: inline-block; padding: 12px 30px; background: white; color: #f5576c; text-decoration: none; border-radius: 25px; font-weight: 600; margin-top: 15px; transition: transform 0.3s ease; }
-  .cta-button:hover { transform: translateY(-2px); }
-  .footer { text-align: center; padding: 30px; background: #f8f9fa; color: #666; border-top: 1px solid #e9ecef; }
-  .social-links { margin: 20px 0; }
-  .social-link { display: inline-block; margin: 0 10px; color: #667eea; text-decoration: none; }
-  .unsubscribe-section { margin: 25px 0 15px 0; padding: 20px; background: #f1f3f4; border-radius: 10px; border: 1px solid #e0e0e0; text-align: center; }
-  .unsubscribe-button { display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff !important; text-decoration: none; border-radius: 25px; font-size: 15px; font-weight: 600; letter-spacing: 0.3px; box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; }
-  .unsubscribe-button:hover { background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%); transform: translateY(-2px); }
-  .unsubscribe-note { font-size: 13px; color: #444; margin-top: 12px; }
-  .copyright { font-size: 12px; color: #999; margin-top: 20px; }
-  @media (max-width: 600px) {
-    .content { padding: 20px 15px; }
-    .header { padding: 30px 20px; }
-    .header h1 { font-size: 24px; }
-    .feature { flex-direction: column; text-align: center; }
-    .feature-icon { margin-right: 0; margin-bottom: 10px; }
-  }
-</style>
-</head>
-<body>
-  <div class="email-container">
-    <div class="header">
-      <div class="logo">🚀 AK Editz</div>
-      <h1>Welcome to Our Community!</h1>
-      <p>You're now part of something amazing</p>
-    </div>
-    <div class="content">
-      <div class="welcome-text">
-        <p>Hello <strong>${name}</strong>,</p>
-        <p>Thank you for subscribing to the AK Editz newsletter! We're thrilled to have you on board.</p>
-      </div>
-      <div class="cta-section">
-        <div class="cta-title">Ready to Explore?</div>
-        <p>Check out our latest projects and start your journey today</p>
-        <a href="${frontendUrl}/projects" class="cta-button">Explore Projects</a>
-      </div>
-    </div>
-    <div class="footer">
-      <p><strong>AK Editz - Building Digital Excellence</strong></p>
-      <div class="social-links">
-        <a href="https://youtube.com/@AKEditzDJ-Developer" class="social-link">YouTube</a>
-        <a href="https://github.com/ak-dev-mern" class="social-link">GitHub</a>
-        <a href="https://linkedin.com/in/akeditzdeveloper" class="social-link">LinkedIn</a>
-        <a href="https://instagram.com/akeditz.developer" class="social-link">Instagram</a>
-        <a href="https://www.facebook.com/akeditz.developer" class="social-link">Facebook</a>
-      </div>
-      <div class="unsubscribe-section">
-        <p>Don't want to receive these emails?</p>
-        <a href="${unsubscribeUrl}" class="unsubscribe-button">🚫 Unsubscribe</a>
-      </div>
-      <div class="copyright">
-        &copy; ${new Date().getFullYear()} AK Editz. All rights reserved.
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-`;
-
-export default {
-  sendWelcomeEmail,
-  sendEmail,
-};
+export default Contact;
