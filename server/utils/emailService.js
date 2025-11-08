@@ -5,8 +5,8 @@ const createTransporter = () => {
   return nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
+      user: process.env.EMAIL_USER || "akeditzdj@gmail.com",
+      pass: process.env.EMAIL_PASSWORD || "pmht bbfg peeb cpcw",
     },
   });
 };
@@ -21,7 +21,9 @@ export const sendWelcomeEmail = async (email, name = "there") => {
     const frontendUrl = "https://akeditz.com";
 
     const mailOptions = {
-      from: `"AK Editz Team" <${process.env.EMAIL_USER}>`,
+      from: `"AK Editz Team" <${
+        process.env.EMAIL_USER || "akeditzdj@gmail.com"
+      }>`,
       to: email,
       subject: "🎉 Welcome to AK Editz Newsletter!",
       html: createWelcomeEmailTemplate(name, unsubscribeUrl, frontendUrl),
