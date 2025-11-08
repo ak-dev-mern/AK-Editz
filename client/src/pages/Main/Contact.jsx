@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Mail, MapPin, Clock, Send } from "lucide-react";
+import apiService from "../../utils/api";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -27,28 +28,39 @@ const Contact = () => {
     setError("");
 
     try {
-      const response = await fetch("https://akeditz.com/api/contact/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      // Use your API service
+      const response = await apiService.contact.sendMail(
+        formData.name,
+        formData.email,
+        formData.subject,
+        formData.message
+      );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to send message");
-      }
+      const data = response.data;
 
       if (data.success) {
         setSubmitted(true);
-        setFormData({ name: "", email: "", subject: "", message: "" });
+
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+
         setTimeout(() => setSubmitted(false), 5000);
+      } else {
+        setError(data.message || "Failed to send message");
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      setError(error.message || "Network error. Please try again.");
+
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Network error. Please try again."
+      );
     } finally {
       setLoading(false);
     }
