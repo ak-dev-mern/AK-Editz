@@ -1,3 +1,7 @@
+
+import nodemailer from "nodemailer";
+
+
 const sendEmail = async ({ to, subject, html, text }) => {
   // Validate required environment variables
   if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
