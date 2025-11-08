@@ -35,7 +35,29 @@ export const sendContactEmail = async (req, res) => {
               ${message.replace(/\n/g, "<br>")}
             </p>
           </div>
-          <p><strong>Environment:</strong> ${process.env.NODE_ENV}</p>
+          <p style="color: #666; font-size: 12px; margin-top: 20px;">
+            <strong>Environment:</strong> ${process.env.NODE_ENV}
+          </p>
+        </div>
+      `,
+    };
+
+    // Confirmation email to user
+    const userEmailTemplate = {
+      to: email,
+      subject: "We Received Your Message - AK Editz",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Thank You for Contacting AK Editz!</h2>
+          <p>Hi <strong>${name}</strong>,</p>
+          <p>We've received your message and will get back to you within 24 hours.</p>
+          <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Your Message:</strong></p>
+            <p style="background: white; padding: 10px; border-radius: 5px;">
+              ${message.replace(/\n/g, "<br>")}
+            </p>
+          </div>
+          <p>Best regards,<br>AK Editz Team</p>
         </div>
       `,
     };
@@ -44,17 +66,7 @@ export const sendContactEmail = async (req, res) => {
 
     // Send both emails
     await sendEmail(adminEmailTemplate);
-    await sendEmail({
-      to: email,
-      subject: "We Received Your Message - Akeditz",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Thank You for Contacting Us!</h2>
-          <p>Hi <strong>${name}</strong>,</p>
-          <p>We've received your message and will get back to you within 24 hours.</p>
-        </div>
-      `,
-    });
+    await sendEmail(userEmailTemplate);
 
     console.log("✅ All emails sent successfully");
 

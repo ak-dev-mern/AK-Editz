@@ -1,40 +1,30 @@
 import { MailerSend } from "mailersend";
 
-const mailersend = new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY });
+const mailersend = new MailerSend({
+  apiKey: process.env.MAILERSEND_API_KEY,
+});
 
-const sendEmail = async (req, res) => {
-  const { name, email, subject, message } = req.body;
-
-  if (!name || !email || !subject || !message)
-    return res
-      .status(400)
-      .json({ success: false, message: "All fields required" });
-
-  const FROM_EMAIL = process.env.FROM_EMAIL;
-  const FROM_NAME = process.env.FROM_NAME;
-  const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-
+export const sendEmail = async (emailData) => {
   try {
-    await mailersend.emails.send({
-      from: { email: FROM_EMAIL, name: FROM_NAME },
-      to: [{ email: ADMIN_EMAIL, name: "Admin" }],
-      subject: `New Contact Form: ${subject}`,
-      html: `<p>Name: ${name}</p><p>Email: ${email}</p><p>Message: ${message}</p>`,
-    });
+    const { to, subject, html, from } = emailData;
+
+    const sentFrom = from || {
+      email: process.env.FROM_EMAIL,
+      name: process.env.FROM_NAME,
+    };
 
     await mailersend.emails.send({
-      from: { email: FROM_EMAIL, name: FROM_NAME },
-      to: [{ email, name }],
-      subject: "We Received Your Message",
-      html: `<p>Hi ${name}, we received your message: ${message}</p>`,
+      from: sentFrom,
+      to: Array.isArray(to) ? to : [{ email: to, name: "" }],
+      subject: subject,
+      html: html,
     });
 
-    res
-      .status(200)
-      .json({ success: true, message: "Message sent successfully" });
+    console.log("✅ Email sent successfully to:", to);
+    return { success: true };
   } catch (error) {
-    console.error("MailerSend error:", error);
-    res.status(500).json({ success: false, message: "Failed to send message" });
+    console.error("❌ MailerSend error:", error);
+    throw new Error("Failed to send email");
   }
 };
 
