@@ -204,11 +204,6 @@ export const apiService = {
 
     getStats: () => api.get("/newsletter/stats"),
   },
-
-  contact: {
-    sendMail: (name, email, subject, message) =>
-      api.post("/contact/send", { name, email, subject, message }),
-  },
 };
 
 // Utility functions
