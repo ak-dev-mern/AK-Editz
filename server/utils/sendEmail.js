@@ -1,44 +1,42 @@
 
 import nodemailer from "nodemailer";
 
-
-const sendEmail = async ({ to, subject, html, text }) => {
-  // Validate required environment variables
-  if (!process.env.SMTP_EMAIL || !process.env.SMTP_PASSWORD) {
-    throw new Error("SMTP credentials not configured");
-  }
-
+const sendEmail = async ({ to, subject, html }) => {
   try {
+    console.log("🔧 Creating transporter with:", {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_EMAIL,
+      hasPassword: !!process.env.SMTP_PASSWORD,
+    });
+
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // TLS
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: process.env.SMTP_PORT || 587,
+      secure: false,
       auth: {
         user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD, // App Password
+        pass: process.env.SMTP_PASSWORD,
       },
     });
 
-    // Verify connection configuration
+    // Verify connection
     await transporter.verify();
+    console.log("✅ SMTP connection verified");
 
     const message = {
-      from: `"${process.env.FROM_NAME || "App"}" <${
-        process.env.FROM_EMAIL || process.env.SMTP_EMAIL
-      }>`,
+      from: `"Akeditz" <${process.env.SMTP_EMAIL}>`,
       to,
       subject,
       html,
-      text: text || html.replace(/<[^>]*>/g, ""), // Fallback text version
     };
 
     const info = await transporter.sendMail(message);
-    console.log("✅ Email sent: %s", info.messageId);
+    console.log("✅ Email sent successfully:", info.messageId);
     return info;
   } catch (error) {
-    console.error("❌ Error sending email:", error);
-    throw new Error(`Failed to send email: ${error.message}`);
+    console.error("❌ Email sending failed:", error);
+    throw error;
   }
 };
-
 export default sendEmail;
