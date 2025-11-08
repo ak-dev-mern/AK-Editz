@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Mail, MapPin, Clock, Send } from "lucide-react";
-import apiService from "../../utils/api";
+import axios from "axios";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -22,55 +22,58 @@ const Contact = () => {
     setError("");
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    const API_URL =
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
-  console.log("📨 Sending to:", `${API_URL}/api/contact/send`);
-  console.log("📝 Form data:", formData);
+    console.log("📨 Sending to:", `${API_URL}/api/contact/send`);
+    console.log("📝 Form data:", formData);
 
-  try {
-    const response = await fetch(`${API_URL}/api/contact/send`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        name: formData.name,
-        email: formData.email,
-        subject: formData.subject,
-        message: formData.message,
-      }),
-    });
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/contact/send`,
+        {
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
 
-    console.log("📡 Response status:", response.status);
-    console.log("📡 Response ok:", response.ok);
+      console.log("📡 Axios response:", response.data);
 
-    // Parse JSON safely
-    const text = await response.text();
-    console.log("📄 Raw response text:", text);
+      if (response.data.success) {
+        setSubmitted(true);
+        setFormData({ name: "", email: "", subject: "", message: "" });
 
-    const data = text ? JSON.parse(text) : {};
-    console.log("📦 Parsed response data:", data);
+        setTimeout(() => setSubmitted(false), 5000);
+      } else {
+        setError(response.data.message || "Failed to send message");
+      }
+    } catch (error) {
+      console.error("❌ Axios error:", error);
 
-    if (data.success) {
-      setSubmitted(true);
-      setFormData({ name: "", email: "", subject: "", message: "" });
-      setTimeout(() => setSubmitted(false), 5000);
-    } else {
-      setError(data.message || "Failed to send message");
+      // Safely extract server error
+      const serverMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Network error. Please try again.";
+
+      setError(serverMessage);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("❌ Error sending message:", error);
-    setError(error.message || "Network error. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-16">
