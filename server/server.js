@@ -33,7 +33,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://akeditz.com",
+      "https://akeditz.com",  
       "https://www.akeditz.com",
       "https://ak-editz.onrender.com",
       "https://ak-editz-1.onrender.com",
