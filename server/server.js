@@ -33,7 +33,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://akeditz.com",  
+      "https://akeditz.com",
       "https://www.akeditz.com",
       "https://ak-editz.onrender.com",
       "https://ak-editz-1.onrender.com",
@@ -64,6 +64,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/newsletter", newsletterRoutes);
+app.use("/contact", contactRoutes);
 
 // =============================
 // 🧠 BASIC TEST ROUTE
