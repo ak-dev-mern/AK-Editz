@@ -1,34 +1,27 @@
-import nodemailer from "nodemailer";
+// utils/sendEmail.js
+import { MailerSend, EmailParams, Sender, Recipient } from "mailersend";
+// or using CommonJS: const { MailerSend, EmailParams, Sender, Recipient } = require("mailersend");
+
+const mailerSend = new MailerSend({
+  apiKey: process.env.MAILERSEND_API_KEY,
+});
 
 const sendEmail = async ({ to, subject, html }) => {
   try {
-    console.log("📨 Preparing SMTP transporter...");
-    console.log("SMTP_EMAIL:", process.env.SMTP_EMAIL);
-    console.log("SMTP_PASSWORD exists:", !!process.env.SMTP_PASSWORD);
+    const sender = new Sender(process.env.FROM_EMAIL, process.env.FROM_NAME);
+    const recipients = [new Recipient(to)];
 
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: false,
-      auth: {
-        user: process.env.SMTP_EMAIL,
-        pass: process.env.SMTP_PASSWORD,
-      },
-    });
+    const emailParams = new EmailParams()
+      .setFrom(sender)
+      .setTo(recipients)
+      .setSubject(subject)
+      .setHtml(html);
 
-    console.log("📤 Sending email to:", to);
-
-    const info = await transporter.sendMail({
-      from: `"${process.env.FROM_NAME}" <${process.env.FROM_EMAIL}>`,
-      to,
-      subject,
-      html,
-    });
-
-    console.log("✅ Email sent successfully:", info.messageId);
-    return info;
+    const response = await mailerSend.email.send(emailParams);
+    console.log("✅ Email sent via MailerSend:", response);
+    return response;
   } catch (error) {
-    console.error("❌ REAL SMTP ERROR:", error); // <---- IMPORTANT
+    console.error("❌ MailerSend error:", error);
     throw error;
   }
 };
