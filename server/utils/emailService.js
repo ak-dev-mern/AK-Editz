@@ -17,10 +17,8 @@ export const sendWelcomeEmail = async (email, name = "there") => {
     const transporter = createTransporter();
 
     // ✅ FRONTEND URL for manual unsubscribe
-    const unsubscribeUrl = `${
-      process.env.CLIENT_URL || "https://www.akeditz.com"
-    }/unsubscribe`;
-    const frontendUrl = process.env.CLIENT_URL || "https://www.akeditz.com";
+    const unsubscribeUrl = `${"https://akeditz.com"}/unsubscribe`;
+    const frontendUrl = "https://akeditz.com";
 
     const mailOptions = {
       from: `"AK Editz Team" <${process.env.EMAIL_USER}>`,
