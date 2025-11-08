@@ -31,7 +31,13 @@ const app = express();
 // =============================
 app.use(
   cors({
-    origin: ["https://akeditz.com", "https://www.akeditz.com"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://akeditz.com",
+      "https://www.akeditz.com",
+      "https://ak-editz.onrender.com",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
