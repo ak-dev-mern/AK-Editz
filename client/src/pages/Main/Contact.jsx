@@ -22,24 +22,77 @@ const Contact = () => {
     setError("");
   };
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   setError("");
+
+  //   try {
+  //     // Use your API service
+  //     const response = await apiService.contact.sendMail(
+  //       formData.name,
+  //       formData.email,
+  //       formData.subject,
+  //       formData.message
+  //     );
+
+  //     const data = response.data;
+
+  //     console.log(data);
+
+  //     if (data.success) {
+  //       setSubmitted(true);
+
+  //       // Reset form
+  //       setFormData({
+  //         name: "",
+  //         email: "",
+  //         subject: "",
+  //         message: "",
+  //       });
+
+  //       setTimeout(() => setSubmitted(false), 5000);
+  //     } else {
+  //       setError(data.message || "Failed to send message");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error sending message:", error);
+
+  //     setError(
+  //       error.response?.data?.message ||
+  //         error.message ||
+  //         "Network error. Please try again."
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      // Use your API service
-      const response = await apiService.contact.sendMail(
-        formData.name,
-        formData.email,
-        formData.subject,
-        formData.message
+      const response = await fetch(
+        "https://ak-editz.onrender.com/api/contact/send",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message,
+          }),
+        }
       );
 
-      const data = response.data;
-
+      // Parse JSON
+      const data = await response.json();
       console.log(data);
-      
 
       if (data.success) {
         setSubmitted(true);
@@ -58,12 +111,7 @@ const Contact = () => {
       }
     } catch (error) {
       console.error("Error sending message:", error);
-
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Network error. Please try again."
-      );
+      setError(error.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
