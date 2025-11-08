@@ -27,7 +27,7 @@ const Contact = () => {
     setError("");
 
     try {
-      const response = await fetch("https:akeditz.com/api/contact/send", {
+      const response = await fetch("https://akeditz.com/api/contact/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
