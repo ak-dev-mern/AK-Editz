@@ -35,6 +35,7 @@ app.use(
       "https://akeditz.com",
       "https://www.akeditz.com",
       "https://ak-editz.onrender.com",
+      "https://ak-editz-1.onrender.com",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
