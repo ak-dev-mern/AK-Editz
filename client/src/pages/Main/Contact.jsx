@@ -67,53 +67,46 @@ const Contact = () => {
   //     setLoading(false);
   //   }
   // };
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  try {
-    const response = await fetch(
-      `${process.env.REACT_APP_API_URL}/contact/send`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          subject: formData.subject,
-          message: formData.message,
-        }),
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/contact/send`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message,
+          }),
+        }
+      );
+
+      // Parse JSON safely
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : {};
+
+      console.log("Response from backend:", data);
+
+      if (data.success) {
+        setSubmitted(true);
+        setFormData({ name: "", email: "", subject: "", message: "" });
+        setTimeout(() => setSubmitted(false), 5000);
+      } else {
+        setError(data.message || "Failed to send message");
       }
-    );
-
-    const data = await response.json();
-    console.log(data);
-
-    if (data.success) {
-      setSubmitted(true);
-
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        subject: "",
-        message: "",
-      });
-
-      setTimeout(() => setSubmitted(false), 5000);
-    } else {
-      setError(data.message || "Failed to send message");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setError(error.message || "Network error. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error sending message:", error);
-    setError(error.message || "Network error. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-16">
