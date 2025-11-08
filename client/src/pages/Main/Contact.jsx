@@ -22,90 +22,90 @@ const Contact = () => {
     setError("");
   };
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-  //   setError("");
-
-  //   try {
-  //     // Use your API service
-  //     const response = await apiService.contact.sendMail(
-  //       formData.name,
-  //       formData.email,
-  //       formData.subject,
-  //       formData.message
-  //     );
-
-  //     const data = response.data;
-
-  //     console.log(data);
-
-  //     if (data.success) {
-  //       setSubmitted(true);
-
-  //       // Reset form
-  //       setFormData({
-  //         name: "",
-  //         email: "",
-  //         subject: "",
-  //         message: "",
-  //       });
-
-  //       setTimeout(() => setSubmitted(false), 5000);
-  //     } else {
-  //       setError(data.message || "Failed to send message");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error sending message:", error);
-
-  //     setError(
-  //       error.response?.data?.message ||
-  //         error.message ||
-  //         "Network error. Please try again."
-  //     );
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const API_URL =
-      import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
     try {
-      const response = await fetch(`${API_URL}/api/contact/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          subject: formData.subject,
-          message: formData.message,
-        }),
-      });
+      // Use your API service
+      const response = await apiService.contact.sendMail(
+        formData.name,
+        formData.email,
+        formData.subject,
+        formData.message
+      );
 
-      // Parse JSON safely
-      const text = await response.text();
-      const data = text ? JSON.parse(text) : {};
+      const data = response.data;
 
-      console.log("Response from backend:", data);
+      console.log(data);
 
       if (data.success) {
         setSubmitted(true);
-        setFormData({ name: "", email: "", subject: "", message: "" });
+
+        // Reset form
+        setFormData({
+          name: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+
         setTimeout(() => setSubmitted(false), 5000);
       } else {
         setError(data.message || "Failed to send message");
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      setError(error.message || "Network error. Please try again.");
+
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Network error. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   setError("");
+  //   const API_URL =
+  //     import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+  //   try {
+  //     const response = await fetch(`${API_URL}/api/contact/send`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         name: formData.name,
+  //         email: formData.email,
+  //         subject: formData.subject,
+  //         message: formData.message,
+  //       }),
+  //     });
+
+  //     // Parse JSON safely
+  //     const text = await response.text();
+  //     const data = text ? JSON.parse(text) : {};
+
+  //     console.log("Response from backend:", data);
+
+  //     if (data.success) {
+  //       setSubmitted(true);
+  //       setFormData({ name: "", email: "", subject: "", message: "" });
+  //       setTimeout(() => setSubmitted(false), 5000);
+  //     } else {
+  //       setError(data.message || "Failed to send message");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error sending message:", error);
+  //     setError(error.message || "Network error. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-16">
