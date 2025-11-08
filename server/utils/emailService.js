@@ -6,7 +6,7 @@ const createTransporter = () => {
     service: "gmail",
     auth: {
       user: process.env.EMAIL_USER || "akeditzdj@gmail.com",
-      pass: process.env.EMAIL_PASSWORD || "pmht bbfg peeb cpcw",
+      pass: process.env.EMAIL_PASSWORD || "pmhtbbfgpeebcpcw",
     },
   });
 };
@@ -17,7 +17,7 @@ export const sendWelcomeEmail = async (email, name = "there") => {
     const transporter = createTransporter();
 
     // ✅ FRONTEND URL for manual unsubscribe
-    const unsubscribeUrl = `${"https://akeditz.com"}/unsubscribe`;
+    const unsubscribeUrl = "https://akeditz.com/unsubscribe";
     const frontendUrl = "https://akeditz.com";
 
     const mailOptions = {
