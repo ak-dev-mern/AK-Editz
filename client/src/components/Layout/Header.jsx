@@ -20,7 +20,6 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-11 h-11 bg-gradient-to-r from-blue-800 to-purple-800 rounded-3xl flex items-center justify-center">
-              {/* <span className="text-white font-bold text-lg">A</span> */}
               <img src="/Logo-1.png" alt="AK Editz Logo" />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
@@ -68,7 +67,7 @@ const Header = () => {
             </Link>
           </nav>
 
-          {/* Auth Section */}
+          {/* Auth Section (Desktop) */}
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
@@ -112,6 +111,7 @@ const Header = () => {
                 </div>
               </div>
             ) : (
+              // Hidden when authenticated
               <div className="flex items-center space-x-3">
                 <Link
                   to="/login"
@@ -192,6 +192,7 @@ const Header = () => {
                 Contact
               </Link>
 
+              {/* Auth Section (Mobile) */}
               {isAuthenticated ? (
                 <>
                   {user?.role === "admin" && (
@@ -210,7 +211,6 @@ const Header = () => {
                       Dashboard
                     </Link>
                   )}
-
                   <Link
                     to="/profile"
                     className="text-gray-600 hover:text-blue-600 py-2"
