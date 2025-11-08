@@ -174,7 +174,7 @@ const Footer = () => {
                 (item) => (
                   <li key={item}>
                     <Link
-                      to={`/${item.toLowerCase()}`}
+                      to={item === "Home" ? "/" : `/${item.toLowerCase()}`}
                       className="text-gray-300 hover:text-white transition-all duration-300 hover:translate-x-2 hover:font-medium flex items-center group"
                     >
                       <span className="w-2 h-2 bg-blue-500 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
@@ -200,7 +200,7 @@ const Footer = () => {
               ].map((item) => (
                 <li key={item}>
                   <Link
-                    to={`/${item.toLowerCase().replace(" ", "")}`}
+                    to={`/${item.toLowerCase().replaceAll(" ", "")}`}
                     className="text-gray-300 hover:text-white transition-all duration-300 hover:translate-x-2 hover:font-medium flex items-center group"
                   >
                     <span className="w-2 h-2 bg-green-500 rounded-full mr-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
@@ -270,13 +270,13 @@ const Footer = () => {
           </p>
           <div className="flex space-x-6 text-sm text-gray-400">
             <Link
-              to="/privacy-policy"
+              to="/privacypolicy"
               className="hover:text-white transition-colors duration-300"
             >
               Privacy Policy
             </Link>
             <Link
-              to="/terms-of-service"
+              to="/termsofservice"
               className="hover:text-white transition-colors duration-300"
             >
               Terms of Service

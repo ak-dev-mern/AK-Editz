@@ -67,7 +67,7 @@ const Register = () => {
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 animate-fade-in">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto rounded-full flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-2xl">A</span>
+            <span className="text-white font-bold text-2xl">AK</span>
           </div>
           <h2 className="mt-4 text-3xl font-extrabold text-gray-900">
             Create Your Account

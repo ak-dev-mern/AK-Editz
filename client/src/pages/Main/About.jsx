@@ -13,9 +13,13 @@ const About = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <h1 className="text-5xl font-extrabold text-gray-900 mb-4 flex justify-center items-center gap-2">
+          <h1 className="text-5xl font-extrabold text-gray-900 mb-4 flex flex-wrap justify-center items-center gap-2 text-center">
             <Globe2 className="text-blue-600 w-8 h-8" />
-            About <span className="text-blue-600">AK Editz</span>
+            <span>
+              About
+              <br className="block sm:hidden" />
+              <span className="text-blue-600 sm:ml-2">AK Editz</span>
+            </span>
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Empowering developers and creators with high-quality code projects,

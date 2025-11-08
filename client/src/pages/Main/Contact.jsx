@@ -60,7 +60,9 @@ const Contact = () => {
         {/* Header Section */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-extrabold text-gray-900 mb-4">
-            Contact <span className="text-blue-600">AK Editz</span>
+            Contact
+            <br className="block sm:hidden" />
+            <span className="text-blue-600 sm:ml-2">AK Editz</span>
           </h1>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
             Have questions or feedback? We're here to help. Drop us a message

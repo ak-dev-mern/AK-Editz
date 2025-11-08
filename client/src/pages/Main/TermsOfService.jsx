@@ -3,21 +3,21 @@ import { Link } from "react-router-dom";
 
 const TermsOfService = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 overflow-x-hidden">
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-r from-purple-600 to-pink-700 text-white overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-black mb-6">
+            <h1 className="text-4xl md:text-6xl font-black mb-6 text-balance">
               Terms of Service
             </h1>
-            <p className="text-xl text-purple-100 mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl text-purple-100 mb-8 leading-relaxed text-balance">
               Please read these terms carefully before using our services. By
               accessing or using our service, you agree to be bound by these
               terms.
             </p>
-            <div className="flex items-center justify-center space-x-4 text-purple-100">
+            <div className="flex flex-col sm:flex-row items-center justify-center sm:space-x-4 space-y-2 sm:space-y-0 text-purple-100">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                 <span>Last updated: {new Date().toLocaleDateString()}</span>
@@ -40,7 +40,7 @@ const TermsOfService = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             {/* Quick Navigation */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-12 sticky top-4 z-10">
+            <div className="bg-white rounded-2xl shadow-lg p-6 mb-12 md:sticky md:top-4 z-10">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Quick Navigation
               </h3>
@@ -70,10 +70,10 @@ const TermsOfService = () => {
               {/* Agreement */}
               <div
                 id="agreement"
-                className="bg-white rounded-2xl shadow-lg p-8"
+                className="bg-white rounded-2xl shadow-lg p-6 sm:p-8"
               >
-                <div className="flex items-start space-x-4 mb-6">
-                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-start sm:space-x-4 mb-6">
+                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 sm:mb-0">
                     <span className="text-2xl">📝</span>
                   </div>
                   <div>
@@ -103,9 +103,12 @@ const TermsOfService = () => {
               </div>
 
               {/* User Accounts */}
-              <div id="accounts" className="bg-white rounded-2xl shadow-lg p-8">
-                <div className="flex items-start space-x-4 mb-6">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <div
+                id="accounts"
+                className="bg-white rounded-2xl shadow-lg p-6 sm:p-8"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:space-x-4 mb-6">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 sm:mb-0">
                     <span className="text-2xl">👤</span>
                   </div>
                   <div>
@@ -152,7 +155,7 @@ const TermsOfService = () => {
                             <h4 className="font-semibold text-gray-900 mb-1">
                               {item.requirement}
                             </h4>
-                            <p className="text-gray-600 text-sm">
+                            <p className="text-gray-600 text-sm break-words">
                               {item.description}
                             </p>
                           </div>
@@ -164,12 +167,15 @@ const TermsOfService = () => {
               </div>
 
               {/* Services */}
-              <div id="services" className="bg-white rounded-2xl shadow-lg p-8">
-                <div className="flex items-start space-x-4 mb-6">
-                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <div
+                id="services"
+                className="bg-white rounded-2xl shadow-lg p-6 sm:p-8"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:space-x-4 mb-6">
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 sm:mb-0">
                     <span className="text-2xl">🛠️</span>
                   </div>
-                  <div>
+                  <div className="w-full">
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">
                       Our Services
                     </h2>
@@ -179,28 +185,23 @@ const TermsOfService = () => {
                       to modify or discontinue our services at any time.
                     </p>
 
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl p-6">
                         <h4 className="font-semibold text-gray-900 mb-3">
                           What We Provide
                         </h4>
                         <ul className="space-y-2 text-gray-600">
-                          <li className="flex items-center space-x-2">
-                            <span className="text-green-500">✓</span>
-                            <span>Professional web development services</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="text-green-500">✓</span>
-                            <span>UI/UX design and consulting</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="text-green-500">✓</span>
-                            <span>Technical support and maintenance</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="text-green-500">✓</span>
-                            <span>Project management and delivery</span>
-                          </li>
+                          {[
+                            "Professional web development services",
+                            "UI/UX design and consulting",
+                            "Technical support and maintenance",
+                            "Project management and delivery",
+                          ].map((service, i) => (
+                            <li key={i} className="flex items-center space-x-2">
+                              <span className="text-green-500">✓</span>
+                              <span>{service}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                       <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6">
@@ -208,26 +209,17 @@ const TermsOfService = () => {
                           Service Limitations
                         </h4>
                         <ul className="space-y-2 text-gray-600">
-                          <li className="flex items-center space-x-2">
-                            <span className="text-purple-500">ⓘ</span>
-                            <span>
-                              Services may be modified or discontinued
-                            </span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="text-purple-500">ⓘ</span>
-                            <span>Availability may vary by region</span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="text-purple-500">ⓘ</span>
-                            <span>
-                              Some features may require additional fees
-                            </span>
-                          </li>
-                          <li className="flex items-center space-x-2">
-                            <span className="text-purple-500">ⓘ</span>
-                            <span>Technical requirements may apply</span>
-                          </li>
+                          {[
+                            "Services may be modified or discontinued",
+                            "Availability may vary by region",
+                            "Some features may require additional fees",
+                            "Technical requirements may apply",
+                          ].map((limit, i) => (
+                            <li key={i} className="flex items-center space-x-2">
+                              <span className="text-purple-500">ⓘ</span>
+                              <span>{limit}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     </div>
@@ -236,9 +228,12 @@ const TermsOfService = () => {
               </div>
 
               {/* Payments & Refunds */}
-              <div id="payments" className="bg-white rounded-2xl shadow-lg p-8">
-                <div className="flex items-start space-x-4 mb-6">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <div
+                id="payments"
+                className="bg-white rounded-2xl shadow-lg p-6 sm:p-8"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:space-x-4 mb-6">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 sm:mb-0">
                     <span className="text-2xl">💳</span>
                   </div>
                   <div>
@@ -255,7 +250,7 @@ const TermsOfService = () => {
                         <h4 className="font-semibold text-gray-900 mb-3">
                           Payment Terms
                         </h4>
-                        <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="font-medium text-gray-700">
                               Payment Methods:
@@ -296,26 +291,37 @@ const TermsOfService = () => {
                           Refund Policy
                         </h4>
                         <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-700">Full refund</span>
-                            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                              Within 14 days
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-700">
-                              Partial refund
-                            </span>
-                            <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                              Case by case
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-700">No refund</span>
-                            <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
-                              After 30 days
-                            </span>
-                          </div>
+                          {[
+                            {
+                              label: "Full refund",
+                              tag: "Within 14 days",
+                              color: "green",
+                            },
+                            {
+                              label: "Partial refund",
+                              tag: "Case by case",
+                              color: "yellow",
+                            },
+                            {
+                              label: "No refund",
+                              tag: "After 30 days",
+                              color: "red",
+                            },
+                          ].map((item, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between"
+                            >
+                              <span className="text-gray-700">
+                                {item.label}
+                              </span>
+                              <span
+                                className={`bg-${item.color}-100 text-${item.color}-800 px-3 py-1 rounded-full text-sm font-medium`}
+                              >
+                                {item.tag}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -326,10 +332,10 @@ const TermsOfService = () => {
               {/* Intellectual Property */}
               <div
                 id="intellectual"
-                className="bg-white rounded-2xl shadow-lg p-8"
+                className="bg-white rounded-2xl shadow-lg p-6 sm:p-8"
               >
-                <div className="flex items-start space-x-4 mb-6">
-                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-start sm:space-x-4 mb-6">
+                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 sm:mb-0">
                     <span className="text-2xl">©️</span>
                   </div>
                   <div>
@@ -342,7 +348,7 @@ const TermsOfService = () => {
                       of YourBrand and its licensors.
                     </p>
 
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="bg-red-50 rounded-xl p-6 border-l-4 border-red-500">
                         <h4 className="font-semibold text-gray-900 mb-3">
                           Our Rights
@@ -373,10 +379,10 @@ const TermsOfService = () => {
               {/* Termination */}
               <div
                 id="termination"
-                className="bg-white rounded-2xl shadow-lg p-8"
+                className="bg-white rounded-2xl shadow-lg p-6 sm:p-8"
               >
-                <div className="flex items-start space-x-4 mb-6">
-                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <div className="flex flex-col sm:flex-row items-start sm:space-x-4 mb-6">
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 mb-4 sm:mb-0">
                     <span className="text-2xl">⏹️</span>
                   </div>
                   <div>
@@ -423,13 +429,16 @@ const TermsOfService = () => {
                 By using our services, you acknowledge that you have read,
                 understood, and agree to be bound by these Terms of Service.
               </p>
-              <div className="flex justify-center space-x-4">
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
                 <button className="bg-white text-purple-600 px-8 py-3 rounded-xl font-semibold hover:bg-purple-50 transition-colors">
                   I Accept
                 </button>
-                <button className="border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-white/10 transition-colors">
+                <Link
+                  to="/contact"
+                  className="border-2 border-white text-white px-8 py-3 rounded-xl font-semibold hover:bg-white/10 transition-colors"
+                >
                   Learn More
-                </button>
+                </Link>
               </div>
             </div>
 
