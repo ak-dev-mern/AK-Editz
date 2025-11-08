@@ -1,29 +1,30 @@
 // utils/sendEmail.js
 import nodemailer from "nodemailer";
 
-const sendEmail = async (options) => {
-  // Create transporter
-  const transporter = nodemailer.createTransport({
-    service: "gmail", // Use Gmail service
-    port: 465,
-    auth: {
-      user: process.env.EMAIL_USER || "akeditzdj@gmail.com",
-      pass: process.env.EMAIL_PASSWORD || "pmhtbbfgpeebcpcw", // Use App Password
-      connectionTimeout: 10000,
-    },
-  });
-
-  // Email message
-  const message = {
-    from: `"AK Editz" <${process.env.EMAIL_USER || "akeditzdj@gmail.com"}>`,
-    to: options.to,
-    subject: options.subject,
-    html: options.html,
-  };
-
+const sendEmail = async ({ to, subject, html }) => {
   try {
+    // Create transporter using env variables
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST, // smtp.gmail.com
+      port: process.env.SMTP_PORT, // 587
+      secure: process.env.SMTP_PORT === "465", // true for 465, false for 587
+      auth: {
+        user: process.env.SMTP_EMAIL,
+        pass: process.env.SMTP_PASSWORD, // Gmail App Password
+      },
+    });
+
+    // Email message
+    const message = {
+      from: `"${process.env.FROM_NAME}" <${process.env.FROM_EMAIL}>`,
+      to,
+      subject,
+      html,
+    };
+
+    // Send email
     const info = await transporter.sendMail(message);
-    console.log("✅ Message sent: %s", info.messageId);
+    console.log("✅ Email sent: %s", info.messageId);
     return info;
   } catch (error) {
     console.error("❌ Error sending email:", error);
