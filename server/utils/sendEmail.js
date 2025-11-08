@@ -25,7 +25,7 @@ const mailersend = new MailerSend({
     }
 
     // Emails must be from a verified domain
-    const FROM_EMAIL = process.env.FROM_EMAIL || "hello@akeditz.com";
+    const FROM_EMAIL = process.env.FROM_EMAIL || "akeditzdj@gmail.com";
     const FROM_NAME = process.env.FROM_NAME || "Akeditz Team";
     const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "akeditzdj@gmail.com";
 
