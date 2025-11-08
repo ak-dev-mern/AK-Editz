@@ -5,18 +5,18 @@ const sendEmail = async (options) => {
   // Create transporter - FIXED: createTransporter → createTransport
   const transporter = nodemailer.createTransport({
     service: "gmail", // Add this for Gmail
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+    host: "smtp.gmail.com",
+    port: "587",
     secure: false, // true for 465, false for other ports
     auth: {
-      user: process.env.SMTP_EMAIL,
-      pass: process.env.SMTP_PASSWORD, // Use App Password here
+      user: "akeditzdj@gmail.com",
+      pass: "pmhtbbfgpeebcpcw", // Use App Password here
     },
   });
 
   // Email message
   const message = {
-    from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`,
+    from: `${"AK Editz"} <${"akeditzdj@gmail.com"}>`,
     to: options.to,
     subject: options.subject,
     html: options.html,
