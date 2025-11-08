@@ -4,10 +4,11 @@ export const sendContactEmail = async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
 
-    console.log("📨 Contact form submission received:", {
+    console.log("📨 Contact form submission:", {
       name,
       email,
       subject,
+      env: process.env.NODE_ENV,
     });
 
     // Validate required fields
@@ -20,7 +21,7 @@ export const sendContactEmail = async (req, res) => {
 
     // Email to admin
     const adminEmailTemplate = {
-      to: "akeditzdj@gmail.com",
+      to: process.env.ADMIN_EMAIL || "akeditzdj@gmail.com",
       subject: `New Contact Form: ${subject}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -34,19 +35,16 @@ export const sendContactEmail = async (req, res) => {
               ${message.replace(/\n/g, "<br>")}
             </p>
           </div>
+          <p><strong>Environment:</strong> ${process.env.NODE_ENV}</p>
         </div>
       `,
     };
 
-    console.log("📤 Attempting to send admin email...");
+    console.log("📤 Attempting to send emails...");
 
-    // Send admin email first
+    // Send both emails
     await sendEmail(adminEmailTemplate);
-    console.log("✅ Admin email sent successfully");
-
-    // Then send confirmation to user
-    console.log("📤 Attempting to send user confirmation email...");
-    const userEmailTemplate = {
+    await sendEmail({
       to: email,
       subject: "We Received Your Message - Akeditz",
       html: `
@@ -56,28 +54,24 @@ export const sendContactEmail = async (req, res) => {
           <p>We've received your message and will get back to you within 24 hours.</p>
         </div>
       `,
-    };
+    });
 
-    await sendEmail(userEmailTemplate);
-    console.log("✅ User confirmation email sent successfully");
+    console.log("✅ All emails sent successfully");
 
     res.status(200).json({
       success: true,
       message: "Message sent successfully",
     });
   } catch (error) {
-    console.error("❌ Contact controller error:", error);
-    console.error("🔍 Error details:", {
+    console.error("❌ Contact controller error:", {
       message: error.message,
       stack: error.stack,
-      code: error.code,
+      env: process.env.NODE_ENV,
     });
 
     res.status(500).json({
       success: false,
       message: "Failed to send message. Please try again later.",
-      // Remove this in production, but useful for debugging:
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
