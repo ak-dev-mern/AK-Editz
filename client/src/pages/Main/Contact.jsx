@@ -71,21 +71,20 @@ const Contact = () => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    const API_URL =
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/contact/send`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            subject: formData.subject,
-            message: formData.message,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/contact/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+        }),
+      });
 
       // Parse JSON safely
       const text = await response.text();
