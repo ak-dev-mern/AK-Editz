@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Sitemap: https://www.akeditz.com/sitemap.xml
+
+# Google Adsense
+User-agent: Mediapartners-Google
+Allow: /
+
+# Block AI crawlers if desired
+User-agent: ChatGPT-User
+Disallow: /
+User-agent: GPTBot
+Disallow: /
