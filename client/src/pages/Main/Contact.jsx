@@ -38,6 +38,9 @@ const Contact = () => {
 
       const data = response.data;
 
+      console.log(data);
+      
+
       if (data.success) {
         setSubmitted(true);
 
