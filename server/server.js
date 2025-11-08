@@ -55,6 +55,9 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Parse URL-encoded bodies (optional, if you submit forms via URL-encoded)
+app.use(express.urlencoded({ extended: true }));
+
 // =============================
 // 🚀 ROUTES
 // =============================
